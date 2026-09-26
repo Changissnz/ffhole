@@ -1,6 +1,8 @@
 from falses.false_entry_functions import * 
 from .graph_comp_ext import * 
 
+DEFAULT_FE_SURFACE_N2N_NUM_PATHS = 7 
+
 class FENode: 
 
     def __init__(self,idn,weight,trap_node= None):   
@@ -69,6 +71,9 @@ class FESurface:
         # agent idn -> expected range of support for next node 
         self.agent_next_hyp_map = dict() 
 
+        # minimum paths; (source node, target node) -> [<NodePath>] 
+        self.min_paths = dict()  
+
     @staticmethod
     def generate_instance(G,node_weight_range,num_entry,num_endpoints,max_computation_size,prg):  
 
@@ -108,6 +113,14 @@ class FESurface:
         for v in agent_hypotheses_map.values(): assert is_valid_range(v,True,False) or is_valid_range(v,False,False) 
         self.agent_next_hyp_map = agent_hypotheses_map 
         return
+
+    #-------------------------- external agent info update
+
+    def trapped_agents(self): 
+        return -1 
+
+    def remove_trapped_agents(self): 
+        return -1 
 
     #-------------------------- agent-to-node mapping functions 
 
@@ -190,6 +203,80 @@ class FESurface:
             app_weight,self.prg)
 
         return best_traps,best_score 
+
+    #------------------------------------ used by False Entry to send weight-range hypotheses to agent 
+
+    def min_paths_from_entry_to_end(self,entry,end): 
+        assert entry in self.entry_points and end in self.end_points
+
+        if (entry,end) not in self.min_paths: 
+            F = BDFSCache(entry,self.G,is_bfs=True,prg=self.prg,edge_cost_function= DEFAULT_EDGE_COST_FUNCTION_2,\
+            num_paths_per_node=DEFAULT_FE_SURFACE_N2N_NUM_PATHS,max_search_radius=float('inf')) 
+            F.exec() 
+
+            for k,v in F.min_paths.items(): 
+                self.min_paths[(entry,k)]  = v 
+
+        return self.min_paths[(entry,end)]
+
+    def prg_choose_paths_to_endpoint_from_entry(self,entry): 
+
+        # choose an endpoint 
+        ep = sorted(self.end_points)
+        i = int(self.prg()) % len(ep) 
+        end = ep[i] 
+        return self.min_paths_from_entry_to_end(entry,end)
+
+    def node_associated_weights(self,n): 
+        # case: node is entry point, compare it with other entry points 
+        if n in self.entry_points: 
+            Q = self.entry_points 
+
+        # case: node is not entry point, compare it with neighbors 
+        else: 
+            Q = self.G[n] 
+    
+        return {self.node_map[n2].weight for n2 in Q}  
+
+    def prg_weight_range_for_node(self,n,ambiguity): 
+        weights = self.node_associated_weights(n) 
+
+        assert len(weights) >= 1 
+
+        num_weights_in_span = 1 
+        if len(weights) > 1: 
+            x = 1 / (len(weights) - 1) 
+            p = round(ambiguity / x) 
+            num_weights_in_span += p 
+
+        return prg_choose_subrange_for_n_elements(weights,num_weights_in_span,self.prg,\
+            starting_index = None,default_zero_distance=5.0,default_zero_diameter=1.0) 
+
+    def prg_weight_range_hypothesis_from_path(self,p,ambiguity:float): 
+        assert type(p) == NodePath 
+        assert len(p) > 1 
+        assert p[0] in self.entry_points
+
+        W = [] 
+        for i in range(len(p)): 
+            w = self.prg_weight_range_for_node(p[i],ambiguity) 
+            W.append(w) 
+        return W 
+
+    def prg_choose_weight_range_hypothesis_for_entry(self,entry,hyp_type,ambiguity:float): 
+        assert hyp_type in {"set","seq"} 
+        assert 0. <= ambiguity <= 1. 
+
+        paths = self.prg_choose_paths_to_endpoint_from_entry(entry) 
+
+        i = int(self.prg()) % len(paths) 
+        p = paths[i] 
+
+        weight_ranges = self.prg_weight_range_hypothesis_from_path(p,ambiguity)
+
+        if hyp_type == "set": 
+            return prg_weight_range_seq_to_set__type_intersection(weight_ranges,prg)
+        return weight_ranges  
     
     #--------------------------------------------------------------------- 
 
@@ -264,9 +351,9 @@ class FEAgent:
             if weight_range[0] <= v <= weight_range[1]: 
                 candidates |= {k} 
 
-        # case: no candidates, choose one using PRNG 
         candidates = sorted(candidates)
 
+        # case: no candidates, choose one using PRNG 
         if len(candidates) == 0: 
             candidates = sorted(node_weight_map.keys())
 
@@ -278,3 +365,21 @@ class FEAgent:
     def update_loc(self,n): 
         self.node_loc = n
         return 
+
+class FEAgentSpawn: 
+
+    def __init__(self,prg,hyp_type,end_points):
+        assert type(prg) in {MethodType,FunctionType} 
+        assert hyp_type in {"set","seq"} 
+        assert type(end_points) == set 
+
+        self.prg = prg 
+        self.hyp_type
+        self.end_points = end_points
+        self.agents = [] 
+        self.acount = 0 
+        return 
+
+    def spawn_from_hyp(self,hyp): 
+        self.acount += 1 
+        return FEAgent(hyp,deepcopy(self.end_points),self.prg)

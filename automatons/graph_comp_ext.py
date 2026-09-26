@@ -147,3 +147,20 @@ def prg_choose_subrange_for_n_elements(numbers,n,prg,starting_index = None,\
             right_index += 1 
             n_ = right_delta
     return span 
+
+def prg_weight_range_seq_to_set__type_intersection(W,prg):  
+    W = prg_seqsort(W,prg)
+
+    q = [] 
+    for w in W: 
+        w_ = tuple(w) 
+        
+        stat = False 
+        for q_ in q: 
+            if range_intersection(w_,q_): 
+                stat = True 
+                break 
+
+        if not stat: 
+            q.append(w_) 
+    return set(q) 

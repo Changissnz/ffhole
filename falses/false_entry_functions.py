@@ -56,13 +56,10 @@ def possible_graph_traps(G,agent_locations):
     Q = [] 
 
     for p in P: 
-        ##print("PP: ",p) 
         t = sequential_trap(G,agent_locations,p) 
         if set(t) not in Q: 
             Q.append(set(t))
-            ##print("q:",t) 
             yield t  
-        ##print("=" * 20)
     return
 
 """
