@@ -33,15 +33,10 @@ def sequential_trap(G,agent_locations,agent_ordering):
 
     used_nodes = set() 
     agent_traps = [] 
-    ##print("START")
     for a in agent_ordering: 
         a2 = agent_locations[a]
         neighbors = G[a2] 
-        '''
-        print("N: ",a, a2,neighbors)
-        print("USED: ",used_nodes)
-        print() 
-        '''
+
         if len((neighbors | {a2}).intersection(used_nodes)) == 0: 
             agent_traps.append(a) 
             used_nodes |= neighbors 
@@ -78,7 +73,7 @@ def satisfied_trap_config(G,t_nodes,node_to_expected_weight_range_map,node_weigh
 
     t_nodes = prg_seqsort(sorted(t_nodes),prg) 
     sat_traps = set() 
-    print("STC: ",t_nodes)
+
     for t in t_nodes: 
         q = node_weight_map[t] 
         q_range = node_to_expected_weight_range_map[t] 
@@ -127,15 +122,6 @@ def max_traps_with_boolean_conditional(G,agent_locations,node_to_expected_weight
     best_score = -float('inf')
     for q_ in q: 
         nwm,st = f(q_)
-        print("QQQ:")
-        print("[0]")
-        print(q_)
-        print("[1]")
-        print(nwm)
-        print("[2]")
-        print(st) 
-        print()
-        print("---------------------------")
         if len(st) > best_score: 
             best.clear() 
 
