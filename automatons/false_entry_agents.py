@@ -10,33 +10,31 @@ class FENode:
         self.idn = idn 
         self.weight = weight
         self.weight_appearance = weight 
-        self.trap_stat = False 
+        self.trap_node = None 
         return
 
     #-------------------------------
 
-    def activate_trap(self): 
-        self.trap_stat = True 
+    def activate_trap(self,idn): 
+        self.trap_node = idn 
         return
 
     #------------------------------- 
 
     def reset(self): 
         self.weight_appearance = self.weight 
-        self.trap_stat = False 
-        ##self.other_support.clear() 
+        self.trap_node = None 
         return
-
-
 
 class FESurface: 
 
-    def __init__(self,G,entry_points,end_points,node_map,max_computation_size:int,prg):   
+    def __init__(self,G,entry_points,end_points,node_map,max_computation_size:int,prg,verbose=False):   
         assert set(G.keys()) == set(node_map.keys())
         assert entry_points.issubset(set(G.keys()))
         assert end_points.issubset(set(G.keys()))
         assert type(max_computation_size) == int and max_computation_size > 0 
         assert type(prg) in {MethodType,FunctionType} 
+        assert type(verbose) == bool 
 
         self.G = G 
         self.entry_points = entry_points
@@ -44,6 +42,7 @@ class FESurface:
         self.node_map = node_map
         self.max_computation_size = max_computation_size 
         self.prg = prg 
+        self.verbose = verbose 
 
         # node -> set of agents 
         self.occupied_nodes = defaultdict(set)
@@ -101,17 +100,20 @@ class FESurface:
         tn = set() 
         for n in self.occupied_nodes.keys(): 
             neighbors = self.G[n] 
-            q = set([self.node_map[n_].trap_stat for n_ in neighbors]) 
-
-            if q == {True}: 
+            q = set([self.node_map[n_].trap_node for n_ in neighbors]) 
+            print("** node: {}->{}".format(n,q))
+            if q == {n}: 
                 tn |= {n}  
 
         return tn 
 
     def remove_trapped_agents(self): 
         tn = self.trapped_nodes()
-        print("trapped nodes")
-        print(tn)
+
+        if self.verbose: 
+            print("---- trapped nodes")
+            print(tn)
+            
         agents = set() 
         for t in tn: 
             agents |= self.occupied_nodes[t] 
@@ -178,10 +180,16 @@ class FESurface:
     def select_trap(self): 
         q,q1 = self.candidate_agent_locations()
         i = int(self.prg()) % len(q) 
+        if self.verbose: 
+            print("---- trap @ nodes")
+            print(q[i][1])
         return q[i] 
 
     def candidate_agent_locations(self): 
         a2next_map = self.agent_to_possible_next_map__nonends()  
+        ##print("CHECK")
+        ##print(a2next_map) 
+
         agent_idns,nextseq_seq = self.sort_agent_to_possible_next_map(a2next_map) 
         q = OrderedSelection(nextseq_seq) 
         return self.fetch_best_traps(agent_idns,q)
@@ -310,7 +318,7 @@ class FESurface:
             neighbors = self.entry_points
         else: 
             neighbors = self.G[loc]
-        return {n:A[n] for n in self.entry_points} 
+        return {n:A[n] for n in neighbors} 
 
     def update_agent_locations(self,a2l_map): 
         self.occupied_nodes.clear() 
@@ -324,7 +332,8 @@ class FESurface:
 
         for n in nodes: 
             neighbors = self.G[n] 
-            for n_ in neighbors: self.node_map[n_].activate_trap() 
+            print("\t\tsetting trap @ {}: {}".format(n,neighbors))
+            for n_ in neighbors: self.node_map[n_].activate_trap(n) 
 
 class FEAHyp: 
 
@@ -362,6 +371,8 @@ class FEAgent:
         self.prg = prg 
 
         self.next_wr = None 
+
+        self.traversed_nodes = [] 
         return
 
     def set_next_weight_range(self): 
@@ -378,7 +389,12 @@ class FEAgent:
 
     def choose_next_loc(self,node_weight_map): 
         assert type(self.next_wr) != type(None) 
-
+        '''
+        print("\t\tCHECKING BUG")
+        print("LOC: ",self.node_loc)
+        print("WEIGHTS:")
+        print(node_weight_map)
+        '''
         # case: one of the node neighbors is an endpoint; take it. 
         end_points_ = set(node_weight_map.keys()).intersection(self.end_points) 
         if len(end_points_) > 0: 
@@ -407,6 +423,7 @@ class FEAgent:
 
     def update_loc(self,n): 
         self.node_loc = n
+        self.traversed_nodes.append(n) 
         return 
 
 class FEAgentSpawn: 

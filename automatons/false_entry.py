@@ -4,7 +4,7 @@ from morebs2.numerical_generator import modulo_in_range,prg__single_to_int
 class FalseEntry: 
 
     def __init__(self,surface:FESurface,agent_spawn:FEAgentSpawn,prg,max_active_agents:int,max_agents:int,\
-        tstep_inaccuracy:float):  
+        tstep_inaccuracy:float,verbose=False):  
         
         assert type(surface) == FESurface 
         assert type(agent_spawn) == FEAgentSpawn
@@ -12,15 +12,19 @@ class FalseEntry:
         assert type(max_active_agents) == int and max_active_agents > 0 
         assert max_active_agents <= max_agents 
         assert 0 <= tstep_inaccuracy <= 1.0 
+        assert type(verbose) == bool 
 
         self.surface = surface 
         self.spawn = agent_spawn 
+        self.surface.verbose = verbose 
+
         self.prg = prg 
 
         self.agents = dict() 
         self.max_active_agents = max_active_agents 
         self.max_agents = max_agents 
         self.tstep_inaccuracy = tstep_inaccuracy
+        self.verbose = verbose 
 
         self.acount = 0 
 
@@ -29,8 +33,16 @@ class FalseEntry:
         return
 
     def exec(self): 
+        if self.verbose: 
+            print("---- occupied nodes")
+            print(self.surface.occupied_nodes)
+            print() 
+
         self.exec_phase_1() 
         self.exec_phase_2()
+
+        if self.verbose: print("======================")
+
 
     #---------------------------------- spawning new agents 
 
@@ -100,21 +112,25 @@ class FalseEntry:
         decisions = {} 
         for k in agent_idns: 
             decisions[k] = self.agent_decision_(k)
-        print("decisions")
-        print(decisions)
+
+        if self.verbose: 
+            print("---- decisions")
+            print(decisions)
         return decisions 
 
     def exec_phase_2(self):
         d = self.exec_agent_decisions() 
         self.surface.update_agent_locations(d) 
         terminated_agents = self.surface.remove_trapped_agents()
-        print("TERMINATED")
-        print(terminated_agents) 
+
+        if self.verbose: 
+            print("---- terminated")
+            print(terminated_agents) 
+
         for t in terminated_agents: 
+            self.terminated |= {self.agents[t]}
             del self.agents[t] 
         
-        self.terminated |= terminated_agents
-
         passed = self.surface.passed_agents()
         for p in passed: del self.agents[p] 
         self.passed |= passed 
