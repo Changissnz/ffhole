@@ -12,7 +12,7 @@ def prg_next_neighbor_from_nodeset(G,nodeset,prg):
 
     for n in q: 
         neighbors = G[n] 
-        x = sorted(nodeset - neighbors)
+        x = sorted(neighbors - nodeset)
 
         if len(x) == 0: continue 
         
@@ -31,11 +31,12 @@ def prg_choose_connected_component(G,component_size,prg):
     start = int(prg()) % len(V) 
 
     q = set([V.pop(start)]) 
-
+    ##print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX: ",q)
     for _ in range(component_size - 1):
         q2 = prg_next_neighbor_from_nodeset(G,q,prg)
         assert type(q2) != type(None) 
         q |= {q2} 
+        ##print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX: ",q) 
     return q
 
 def prg_choose_farthest_endpoints_from_nodeset(G,nodeset,num_endpoints,prg):

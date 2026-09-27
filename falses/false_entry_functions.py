@@ -1,6 +1,7 @@
 from morebs2.ssi_ext import * 
 from morebs2.numerical_generator import prg_seqsort
-from itertools import permutations 
+from itertools import permutations
+from math import factorial
 
 # TODO: relocate these methods 
 
@@ -45,7 +46,7 @@ def sequential_trap(G,agent_locations,agent_ordering):
 """
 
 """ 
-def possible_graph_traps(G,agent_locations): 
+def possible_graph_traps(G,agent_locations,max_candidate_size): 
 
     # get agent neighbor intersections 
     agent_intersections = [] 
@@ -55,11 +56,15 @@ def possible_graph_traps(G,agent_locations):
 
     Q = [] 
 
+    i = 0 
     for p in P: 
         t = sequential_trap(G,agent_locations,p) 
         if set(t) not in Q: 
             Q.append(set(t))
             yield t  
+        i += 1 
+        if i >= max_candidate_size: break 
+
     return
 
 """
@@ -100,13 +105,13 @@ def fetch_satisfied_traps(node_weight_map,node_to_expected_weight_range_map):
 
 ## TODO: work on this part. 
 def max_traps(G,agent_locations):
-    q = possible_graph_traps(G,agent_locations) 
+    q = possible_graph_traps(G,agent_locations,float('inf')) 
     f = lambda x: len(set(q_))
     return best_solutions_loop(q,f,set) 
 
-def max_traps_with_boolean_conditional(G,agent_locations,node_to_expected_weight_range_map,node_weight_map,prg): 
+def max_traps_with_boolean_conditional(G,agent_locations,node_to_expected_weight_range_map,node_weight_map,prg,max_candidate_size): 
 
-    q = possible_graph_traps(G,agent_locations) 
+    q = possible_graph_traps(G,agent_locations,max_candidate_size) 
 
     def f(q_): 
         t_nodes = [agent_locations[q1] for q1 in q_] 

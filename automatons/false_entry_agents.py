@@ -1,53 +1,33 @@
 from falses.false_entry_functions import * 
 from .graph_comp_ext import * 
+from xFS_bots.graph_models.node_path import * 
 
 DEFAULT_FE_SURFACE_N2N_NUM_PATHS = 7 
 
 class FENode: 
 
-    def __init__(self,idn,weight,trap_node= None):   
+    def __init__(self,idn,weight):   
         self.idn = idn 
         self.weight = weight
         self.weight_appearance = weight 
-        ##self.edge_weights = edge_weights
-        self.trap_node = trap_node
-
-        self.other_support = set() 
+        self.trap_stat = False 
         return
 
     #-------------------------------
 
-    def activate_trap(self,node_idn): 
-        self.trap_node = node_idn 
+    def activate_trap(self): 
+        self.trap_stat = True 
         return
-
-    def call_trap(self): 
-        q = self.trap_node 
-        self.trap_node = None 
-        return q,self.weight  
 
     #------------------------------- 
 
-    def reset_support(self): 
+    def reset(self): 
         self.weight_appearance = self.weight 
-        self.other_support.clear() 
+        self.trap_stat = False 
+        ##self.other_support.clear() 
         return
 
-    def conduct_support_for_other_node(self,fe_node:FENode,support:float):  
-        assert type(fe_node) == FENode 
 
-        if self.weight_appearance <= 0.: 
-            print("cannot support any more.")
-            return 
-
-        if support > self.weight_appearance: 
-            support = self.weight_appearance 
-
-        self.fe_node.weight_appearance += support 
-        self.weight_appearance -= support
-
-        self.other_support |= {self.fe_node.idn} 
-        return 
 
 class FESurface: 
 
@@ -98,7 +78,7 @@ class FESurface:
         node_map = {} 
         for x in V: 
             w = safe_modulo_in_range(prg(),node_weight_range)
-            node_map[x] = FENode(x,w,None) 
+            node_map[x] = FENode(x,w) 
 
         return FESurface(G,set(entry_points),set(end_points),node_map,max_computation_size,prg)
 
@@ -110,17 +90,43 @@ class FESurface:
     """
     def load_agent_hyp_map(self,agent_hypotheses_map): 
         assert type(agent_hypotheses_map) == dict 
-        for v in agent_hypotheses_map.values(): assert is_valid_range(v,True,False) or is_valid_range(v,False,False) 
+        for v in agent_hypotheses_map.values(): 
+            assert is_valid_range(v,True,True) or is_valid_range(v,False,True) 
         self.agent_next_hyp_map = agent_hypotheses_map 
         return
 
     #-------------------------- external agent info update
 
-    def trapped_agents(self): 
-        return -1 
+    def trapped_nodes(self): 
+        tn = set() 
+        for n in self.occupied_nodes.keys(): 
+            neighbors = self.G[n] 
+            q = set([self.node_map[n_].trap_stat for n_ in neighbors]) 
+
+            if q == {True}: 
+                tn |= {n}  
+
+        return tn 
 
     def remove_trapped_agents(self): 
-        return -1 
+        tn = self.trapped_nodes()
+        print("trapped nodes")
+        print(tn)
+        agents = set() 
+        for t in tn: 
+            agents |= self.occupied_nodes[t] 
+            del self.occupied_nodes[t] 
+
+        for v in self.node_map.values(): v.reset() 
+        return agents 
+
+    def passed_agents(self): 
+        passed = set()
+        for x in self.end_points: 
+            q = self.occupied_nodes[x] 
+            passed |= deepcopy(q) 
+            del self.occupied_nodes[x] 
+        return passed 
 
     #-------------------------- agent-to-node mapping functions 
 
@@ -139,7 +145,7 @@ class FESurface:
 
         for k,v in M.items(): 
             if type(v) == type(None): 
-                M2[k] = deepcopy(v2) 
+                M2[k] = deepcopy(self.entry_points) 
             else: 
                 M2[k] = deepcopy(self.G[v])
 
@@ -169,7 +175,12 @@ class FESurface:
 
         return agent_idns,nextseq_seq
 
-    def select_wanted_agent_locations(self): 
+    def select_trap(self): 
+        q,q1 = self.candidate_agent_locations()
+        i = int(self.prg()) % len(q) 
+        return q[i] 
+
+    def candidate_agent_locations(self): 
         a2next_map = self.agent_to_possible_next_map__nonends()  
         agent_idns,nextseq_seq = self.sort_agent_to_possible_next_map(a2next_map) 
         q = OrderedSelection(nextseq_seq) 
@@ -179,7 +190,7 @@ class FESurface:
 
         best_traps = [] 
         best_score = -float('inf') 
-
+        c = 0 
         while c < self.max_computation_size: 
             x = next(ord_selector)
             if type(x) == type(None): break 
@@ -191,16 +202,20 @@ class FESurface:
                 best_traps.clear() 
             
             if score >= best_score: 
-                best_traps.extend(T) 
+
+                best_traps.extend([(t,agent_locations) for t in T]) 
                 best_score = score 
             c += 1 
         return best_traps,best_score 
 
     def compute_trap(self,agent2next_map): 
         app_weight = self.appearance()
+        q = {agent2next_map[k]:v for k,v in self.agent_next_hyp_map.items()} 
+
+
         best_traps,best_score = max_traps_with_boolean_conditional(\
-            self.G,agent2next_map,self.agent_next_hyp_map,\
-            app_weight,self.prg)
+            self.G,agent2next_map,q,\
+            app_weight,self.prg,self.max_computation_size)
 
         return best_traps,best_score 
 
@@ -236,10 +251,10 @@ class FESurface:
         else: 
             Q = self.G[n] 
     
-        return {self.node_map[n2].weight for n2 in Q}  
+        return [self.node_map[n2].weight for n2 in Q] 
 
     def prg_weight_range_for_node(self,n,ambiguity): 
-        weights = self.node_associated_weights(n) 
+        weights = self.node_associated_weights(n)
 
         assert len(weights) >= 1 
 
@@ -260,7 +275,7 @@ class FESurface:
         W = [] 
         for i in range(len(p)): 
             w = self.prg_weight_range_for_node(p[i],ambiguity) 
-            W.append(w) 
+            W.append(tuple(w))
         return W 
 
     def prg_choose_weight_range_hypothesis_for_entry(self,entry,hyp_type,ambiguity:float): 
@@ -280,12 +295,36 @@ class FESurface:
     
     #--------------------------------------------------------------------- 
 
-    def exec_trap(self,T):
-
-        return -1 
-
     def project_appearance(self):
-        return -1
+        q = self.select_trap() 
+
+        for k,v in q[0].items(): 
+            self.node_map[k].weight_appearance = v 
+        self.set_trap(q[1])
+        return self.appearance() 
+
+    def agent_location_to_appeared_node_weights(self,loc): 
+        A = self.appearance() 
+
+        if type(loc) == type(None): 
+            neighbors = self.entry_points
+        else: 
+            neighbors = self.G[loc]
+        return {n:A[n] for n in self.entry_points} 
+
+    def update_agent_locations(self,a2l_map): 
+        self.occupied_nodes.clear() 
+        for k,v in a2l_map.items():
+            self.occupied_nodes[v] |= {k} 
+
+    #------------------------------------------ executing trap 
+
+    def set_trap(self,a2node_map):  
+        nodes = set(a2node_map.values()) 
+
+        for n in nodes: 
+            neighbors = self.G[n] 
+            for n_ in neighbors: self.node_map[n_].activate_trap() 
 
 class FEAHyp: 
 
@@ -314,29 +353,34 @@ class FEAHyp:
 
 class FEAgent: 
 
-    def __init__(self,weight_hypothesis,end_points,prg): 
+    def __init__(self,idn,weight_hypothesis,end_points,prg): 
         assert type(end_points) == set 
-
+        self.idn = idn 
         self.hyp = FEAHyp(weight_hypothesis,prg) 
         self.end_points = end_points
         self.node_loc = None 
         self.prg = prg 
+
+        self.next_wr = None 
         return
 
-    def choose_next_weight_range(self): 
+    def set_next_weight_range(self): 
         q = next(self.hyp)
 
         # case: choose one in sequence 
         if type(q) == list: 
             i = int(self.prg()) % len(q) 
+            self.next_wr = q[i] 
             return q[i] 
+        self.next_wr = q 
         return q 
 
 
-    def choose_next_loc(self,node_to_weight_map): 
-        
+    def choose_next_loc(self,node_weight_map): 
+        assert type(self.next_wr) != type(None) 
+
         # case: one of the node neighbors is an endpoint; take it. 
-        end_points_ = set(node_to_weight_map.keys()).intersection(self.end_points) 
+        end_points_ = set(node_weight_map.keys()).intersection(self.end_points) 
         if len(end_points_) > 0: 
             end_points_ = sorted(end_points_) 
             i = int(self.prg()) % len(end_points_) 
@@ -345,10 +389,9 @@ class FEAgent:
             return n 
 
         candidates = set() 
-        weight_range = self.choose_next_weight_range() 
 
         for k,v in node_weight_map.items(): 
-            if weight_range[0] <= v <= weight_range[1]: 
+            if self.next_wr[0] <= v <= self.next_wr[1]: 
                 candidates |= {k} 
 
         candidates = sorted(candidates)
@@ -357,7 +400,7 @@ class FEAgent:
         if len(candidates) == 0: 
             candidates = sorted(node_weight_map.keys())
 
-        i = int(prg()) % len(candidates) 
+        i = int(self.prg()) % len(candidates) 
         n = candidates[i]  
         self.update_loc(n) 
         return n 
@@ -374,12 +417,13 @@ class FEAgentSpawn:
         assert type(end_points) == set 
 
         self.prg = prg 
-        self.hyp_type
+        self.hyp_type = hyp_type
         self.end_points = end_points
         self.agents = [] 
         self.acount = 0 
         return 
 
     def spawn_from_hyp(self,hyp): 
-        self.acount += 1 
-        return FEAgent(hyp,deepcopy(self.end_points),self.prg)
+        q = self.acount
+        self.acount += 1  
+        return FEAgent(q,hyp,deepcopy(self.end_points),self.prg)

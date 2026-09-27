@@ -1,4 +1,5 @@
 from .false_entry_agents import * 
+from morebs2.numerical_generator import modulo_in_range,prg__single_to_int
 
 class FalseEntry: 
 
@@ -16,18 +17,25 @@ class FalseEntry:
         self.spawn = agent_spawn 
         self.prg = prg 
 
-        self.agents = [] 
+        self.agents = dict() 
         self.max_active_agents = max_active_agents 
         self.max_agents = max_agents 
         self.tstep_inaccuracy = tstep_inaccuracy
 
         self.acount = 0 
+
+        self.passed = set() 
+        self.terminated = set() 
         return
+
+    def exec(self): 
+        self.exec_phase_1() 
+        self.exec_phase_2()
 
     #---------------------------------- spawning new agents 
 
     def generate_hyp_for_agent(self): 
-        q = sorted(entry_points)
+        q = sorted(self.surface.entry_points)
         i = int(self.prg()) % len(q) 
 
         entry = q[i] 
@@ -43,15 +51,70 @@ class FalseEntry:
         d0 = self.max_active_agents - len(self.agents)
         d1 = self.max_agents - len(self.agents) 
         d = min([d0,d1]) 
-        i = modulo_in_range(prg__single_to_int(self.prg),[1,d + 1]) 
+        if d <= 0: return 
+
+        i = modulo_in_range(int(self.prg()),[1,d + 1]) 
 
         for _ in range(i): 
             hyp = self.generate_hyp_for_agent() 
             a = self.spawn.spawn_from_hyp(hyp)
-            self.agents.append(a) 
+            self.agents[a.idn] = a 
+            self.acount += 1 
+
+    #----------------------------------- transmitting agent weight-range hypotheses to <FESurface> 
+
+    def exec_agent_wr_hyp(self): 
+        M = {}
+        for idn,a in self.agents.items(): 
+            a.set_next_weight_range() 
+            M[idn] = deepcopy(a.next_wr) 
+        return M 
 
     def transmit_agent_wr_hyp_to_surface(self): 
-        return -1 
+        M = self.exec_agent_wr_hyp() 
+        self.surface.load_agent_hyp_map(M) 
+        return
 
     def exec_surface_appearance(self): 
-        return -1 
+        self.surface.project_appearance() 
+        return 
+
+    def exec_phase_1(self): 
+        self.allow_spawn() 
+        self.transmit_agent_wr_hyp_to_surface() 
+        self.exec_surface_appearance() 
+
+
+    #---------------------------------- agents make moves and surface executes traps
+
+    def agent_decision_(self,idn): 
+        A = self.agents[idn] 
+        loc = A.node_loc 
+
+        q = self.surface.agent_location_to_appeared_node_weights(loc) 
+        x = A.choose_next_loc(q) 
+        return x 
+
+    def exec_agent_decisions(self): 
+        agent_idns = sorted(self.agents.keys())
+        decisions = {} 
+        for k in agent_idns: 
+            decisions[k] = self.agent_decision_(k)
+        print("decisions")
+        print(decisions)
+        return decisions 
+
+    def exec_phase_2(self):
+        d = self.exec_agent_decisions() 
+        self.surface.update_agent_locations(d) 
+        terminated_agents = self.surface.remove_trapped_agents()
+        print("TERMINATED")
+        print(terminated_agents) 
+        for t in terminated_agents: 
+            del self.agents[t] 
+        
+        self.terminated |= terminated_agents
+
+        passed = self.surface.passed_agents()
+        for p in passed: del self.agents[p] 
+        self.passed |= passed 
