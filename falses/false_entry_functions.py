@@ -70,7 +70,7 @@ max_candidate_size := int, maximum number of permutations to consider
 return:
 - list<list of agents that can be trapped> 
 """ 
-def possible_graph_traps(G,agent_locations,max_candidate_size): 
+def possible_graph_traps(G,agent_locations,max_candidate_size=float('inf')): 
 
     # get agent neighbor intersections 
     agent_intersections = [] 
@@ -157,7 +157,7 @@ return:
     be trapped if they traverse to their expected weights).
 """
 def max_traps_with_boolean_conditional(G,agent_locations,node_to_expected_weight_range_map,node_weight_map,\
-    prg,max_candidate_size): 
+    prg,max_candidate_size=float('inf')): 
 
     q = possible_graph_traps(G,agent_locations,max_candidate_size) 
 

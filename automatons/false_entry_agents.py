@@ -4,6 +4,11 @@ from xFS_bots.graph_models.node_path import *
 
 DEFAULT_FE_SURFACE_N2N_NUM_PATHS = 7 
 
+"""
+Variable<weight_appearance> is what third-party agent perceives. Variable<weight> 
+is a constant value that can re-distribute to other <FENode>'s 
+variable<weight_appearance> at every timestamp. 
+"""
 class FENode: 
 
     def __init__(self,idn,weight):   
@@ -45,6 +50,12 @@ Trap mechanism of Defender network occurs in two phases:
     
     Network modifies its appearance to satisfy the agents' expected next-node weight ranges, by 
     redistributing weights of nodes between its neighbors. 
+
+    > A node n can re-distribute its variable<weight> to another node n2's variable<weight_appearance>. 
+      The variable<weight> of n and variable<weight_appearance> of n2 reset at every timestamp. 
+
+    NOTE: see file<falses.false_entry_functions> for details on the calculations. 
+      
 
 (II) Trap execution phase. 
 
@@ -133,7 +144,8 @@ class FESurface:
         for n in self.occupied_nodes.keys(): 
             neighbors = self.G[n] 
             q = set([self.node_map[n_].trap_node for n_ in neighbors]) 
-            print("** node: {}->{}".format(n,q))
+            # NOTE: extra verbose 
+            if self.verbose: print("** node: {}->{}".format(n,q))
             if q == {n}: 
                 tn |= {n}  
 
@@ -282,19 +294,21 @@ class FESurface:
         end = ep[i] 
         return self.min_paths_from_entry_to_end(entry,end)
 
-    def node_associated_weights(self,n): 
+    def node_associated_weights(self,n,prev):  
         # case: node is entry point, compare it with other entry points 
         if n in self.entry_points: 
             Q = self.entry_points 
-
         # case: node is not entry point, compare it with neighbors 
         else: 
-            Q = self.G[n] 
-    
-        return [self.node_map[n2].weight for n2 in Q] 
+            Q = self.G[prev]  
 
-    def prg_weight_range_for_node(self,n,ambiguity): 
-        weights = self.node_associated_weights(n)
+        neighbors = sorted(Q) 
+        i = neighbors.index(n) 
+    
+        return [self.node_map[n2].weight for n2 in neighbors],i 
+
+    def prg_weight_range_for_node(self,n,prev,ambiguity): 
+        weights,starting_index = self.node_associated_weights(n,prev)
 
         assert len(weights) >= 1 
 
@@ -305,7 +319,7 @@ class FESurface:
             num_weights_in_span += p 
 
         return prg_choose_subrange_for_n_elements(weights,num_weights_in_span,self.prg,\
-            starting_index = None,default_zero_distance=5.0,default_zero_diameter=1.0) 
+            starting_index = starting_index,default_zero_distance=5.0,default_zero_diameter=1.0) 
 
     def prg_weight_range_hypothesis_from_path(self,p,ambiguity:float): 
         assert type(p) == NodePath 
@@ -313,8 +327,10 @@ class FESurface:
         assert p[0] in self.entry_points
 
         W = [] 
+        prev = None 
         for i in range(len(p)): 
-            w = self.prg_weight_range_for_node(p[i],ambiguity) 
+            w = self.prg_weight_range_for_node(p[i],prev,ambiguity) 
+            prev = p[i] 
             W.append(tuple(w))
         return W 
 
@@ -364,7 +380,8 @@ class FESurface:
 
         for n in nodes: 
             neighbors = self.G[n] 
-            print("\t\tsetting trap @ {}: {}".format(n,neighbors))
+            # NOTE: extra verbose 
+            if self.verbose: print("\t\tsetting trap @ {}: {}".format(n,neighbors))
             for n_ in neighbors: self.node_map[n_].activate_trap(n) 
 
 """
