@@ -28,7 +28,7 @@ At each timestamp, the execution occurs in two phases.
         -------------------
 The `tstep_inaccuracy` is a ratio on the weight range hypotheses an agent, during spawning, 
 receives. Surface retrieves a path from one of its entry points to one of its end points. 
-This path p of q nodes is associated with q weights. If `tstep_inaccuracy` is 0.0, the i'th 
+This path p of q nodes is associated with q weights. If `tstep_inaccuracy` is 0.0, every i'th 
 weight range the agent receives fits exactly p[i]'s actual weight (variable<weight>). If 
 `tstep_inaccuracy` is 1.0, the weight range fits all of p[i-1]'s neighbors, in which p[i] is 
 included. 
