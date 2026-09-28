@@ -1,6 +1,33 @@
 from .false_entry_agents import * 
 from morebs2.numerical_generator import modulo_in_range,prg__single_to_int
 
+"""
+Features two classes of agents, a Defender network (<FESurface>) and <FEAgent>s, 
+spawned by an <FEAgentSpawn>. 
+
+Automaton facilitates traversal activity of <FEAgent>s through the Defender network, 
+until they each reach an endpoint or are terminated by the Defender network's trap 
+mechanism. 
+
+At each timestamp, the execution occurs in two phases. 
+
+(I) Appearance phase. 
+    - additional agents spawn, in limits of `max_active_agents` and `max_agents`. 
+    - automaton transmits agent next-node weight range hypotheses to Defender. 
+    - Defender designates probable nodes as traps and modifies its appearance of node 
+      weights for this designation. 
+
+(II) Trap execution phase. 
+    - agents traverse to their next node. 
+    - Defender's traps activate. 
+    - trapped agents are eliminated. 
+    - agents that reached an endpoint of the Defender are successful, 
+      placed in the `passed` cache. 
+
+NOTE: decision-making of both classes of agents depend on PRNGs given to them. 
+
+NOTE: see file<falses.false_entry_functions> for more explanatory comments and code. 
+"""
 class FalseEntry: 
 
     def __init__(self,surface:FESurface,agent_spawn:FEAgentSpawn,prg,max_active_agents:int,max_agents:int,\

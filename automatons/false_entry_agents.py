@@ -26,12 +26,44 @@ class FENode:
         self.trap_node = None 
         return
 
+"""
+The Defender network in the False Entry automaton. The network is an extension of the generic 
+simple, undirected graph. A third-party agent can enter the network by one of the `entry_points`. 
+If agent traverses one of the `end_points`, it passes. If agent traverses a node that acts as a 
+trap, agent is terminated. 
+
+---------------------------------------------------------------------------------------------
+
+Trap mechanism of Defender network occurs in two phases:
+(I) Appearance phase. 
+
+    Network is given information of every third-party agent A's expected weight range R for the next node. 
+    Agent A will always choose a next node with an appeared weight the range of R. 
+
+    Network chooses the best nodes to serve as traps for all agents (trap configuration). See 
+    function<max_traps_with_boolean_conditional> for details on on the calculation. 
+    
+    Network modifies its appearance to satisfy the agents' expected next-node weight ranges, by 
+    redistributing weights of nodes between its neighbors. 
+
+(II) Trap execution phase. 
+
+    If any agent traverses a node n that is designated a trap, agent is eliminated. 
+
+---------------------------------------------------------------------------------------------
+
+Defender network resets its trap configuration to null after every timestamp. 
+
+The variable `max_computation_size` is an upper-bound limiting the Defender network's search space 
+consideration for its various calculations. 
+"""
 class FESurface: 
 
     def __init__(self,G,entry_points,end_points,node_map,max_computation_size:int,prg,verbose=False):   
         assert set(G.keys()) == set(node_map.keys())
         assert entry_points.issubset(set(G.keys()))
         assert end_points.issubset(set(G.keys()))
+        for v in node_map.values(): assert type(v) == FENode
         assert type(max_computation_size) == int and max_computation_size > 0 
         assert type(prg) in {MethodType,FunctionType} 
         assert type(verbose) == bool 
@@ -335,6 +367,11 @@ class FESurface:
             print("\t\tsetting trap @ {}: {}".format(n,neighbors))
             for n_ in neighbors: self.node_map[n_].activate_trap(n) 
 
+"""
+The Hypothesis data structure for <FEAgent> (False Entry Agent). 
+It contains expected node weight ranges, in the format of set or 
+sequence.
+"""
 class FEAHyp: 
 
     def __init__(self,range_info,prg):
@@ -360,6 +397,17 @@ class FEAHyp:
         self.index += 1 
         return q 
 
+"""
+False Entry Agent. 
+
+<FEAgent> is to traverse <FESurface>, from one entry point to one end point, 
+without getting trapped. <FEAgent> is instantiated with a hypothesis on which 
+nodes to take, during its traversal. This hypothesis is node weight ranges. 
+<FEAgent> only has knowledge of this hypothesis and the end points of the 
+Defender network it is to travel. Agent does not know shortest pairwise 
+paths. Agent also does not know which of the nodes of the Defender network 
+are set up to trap or to serve as a trap node. 
+"""
 class FEAgent: 
 
     def __init__(self,idn,weight_hypothesis,end_points,prg): 

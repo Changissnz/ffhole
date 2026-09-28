@@ -28,7 +28,26 @@ def boolean_conditional_over_map(d,cf):
     return True 
 
 #------------------------------ 
+"""
+A trap, defined in this program, pertains to a node attribute in a graph. 
 
+A node n of a graph G is a trap if all its neighboring nodes are set up 
+against n, such that any agent traversing G that traverses n will be 
+trapped (eliminated by the automaton False Entry's causality). 
+
+Any node n_ can set up against exactly one other node n0. 
+"""
+
+
+"""
+G := defaultdict, graph. 
+agent_locations := dict, agent idn -> node idn. 
+agent_ordering := list, agent idns to sequentially iterate through to 
+                    attempt a trap. 
+
+return: 
+- list, agent idns that can be trapped. 
+"""
 def sequential_trap(G,agent_locations,agent_ordering): 
     assert set(agent_ordering) == set(agent_locations.keys())
 
@@ -44,7 +63,12 @@ def sequential_trap(G,agent_locations,agent_ordering):
     return agent_traps 
 
 """
+G := defaultdict, graph. 
+agent_locations := dict, agent idn -> node idn. 
+max_candidate_size := int, maximum number of permutations to consider 
 
+return:
+- list<list of agents that can be trapped> 
 """ 
 def possible_graph_traps(G,agent_locations,max_candidate_size): 
 
@@ -68,8 +92,20 @@ def possible_graph_traps(G,agent_locations,max_candidate_size):
     return
 
 """
+Determines which of the nodes in `t_nodes` can act as a trap for a third-party agent. 
+Weights of nodes, given in `node_weight_map`, can be distributed (+/- own to other) 
+with neighboring nodes to satisfy the `node_to_expected_weight_range_map`. 
+---
+
+G := defaultdict, graph. 
+t_nodes := set, expected trap nodes. 
+node_to_expected_weight_range_map := dict, node idn -> (minimum satisfying range, maximum satisfying range) 
+node_weight_map := dict, node idn -> appearance of weight 
+prg := function|method,PRNG 
+
 return: 
-- 
+- dict, `node_weight_map` revised to satisfy `node_to_expected_weight_range_map`
+- set, nodes that can be trapped 
 """
 def satisfied_trap_config(G,t_nodes,node_to_expected_weight_range_map,node_weight_map,prg):  
 
@@ -109,7 +145,19 @@ def max_traps(G,agent_locations):
     f = lambda x: len(set(q_))
     return best_solutions_loop(q,f,set) 
 
-def max_traps_with_boolean_conditional(G,agent_locations,node_to_expected_weight_range_map,node_weight_map,prg,max_candidate_size): 
+"""
+Calculates the highest scoring trap configurations, given the expected node locations 
+of third-party agents, given by `agent_locations`. 
+
+NOTE: see the previous methods for descriptions of this method's other parameter variables. 
+
+return: 
+- list<dict>, each a revised `node_weight_map`. 
+- list<int>, each the corresponding configuration score (number of agents that would 
+    be trapped if they traverse to their expected weights).
+"""
+def max_traps_with_boolean_conditional(G,agent_locations,node_to_expected_weight_range_map,node_weight_map,\
+    prg,max_candidate_size): 
 
     q = possible_graph_traps(G,agent_locations,max_candidate_size) 
 
