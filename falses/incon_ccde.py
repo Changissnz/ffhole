@@ -72,7 +72,10 @@ class InconsistentFunctionTypeCCDE:
         # 2 -> d:0 + e:(!d)
         self.contra_mode = contra_mode 
 
+        # observed demo 
         self.Q = deque() 
+        # actual demo 
+        self.Q_ = deque() 
         self.contra_seq = deque() 
         return 
 
@@ -81,7 +84,7 @@ class InconsistentFunctionTypeCCDE:
         return self.F(q)
 
     def switch_contra(self,ext_prng): 
-        self.contra_mode = modulo_in_range(int(ext_prng()),[-1,4]) 
+        self.contra_mode = modulo_in_range(int(ext_prng()),[-1,3]) 
 
     def map_result_by_contra(self,x,is_demo_output:bool): 
 
@@ -102,16 +105,19 @@ class InconsistentFunctionTypeCCDE:
         self.prev_index_map = self.kcy.current_index() 
         
         self.Q.clear() 
+        self.Q_.clear() 
         self.contra_seq.clear() 
 
         for _ in range(num_iter): 
             x = next(self) 
-            x_ = self.map_result_by_contra(x,True) 
+            self.Q_.append(x) 
 
+            x_ = self.map_result_by_contra(x,True) 
             self.contra_seq.append(self.contra_mode) 
-            self.switch_contra(ext_prng) 
             self.Q.append(x_)  
-        return list(self.Q) 
+
+            self.switch_contra(ext_prng) 
+        return np.array(self.Q) 
 
     def exec_iterate(self): 
     
@@ -121,7 +127,7 @@ class InconsistentFunctionTypeCCDE:
             self.contra_mode = self.contra_seq.popleft() 
             x_ = self.map_result_by_contra(x,False)
             q.append(x_)
-        return q 
+        return np.array(q) 
 
     @staticmethod 
     def generate_instance(cperiod_seq:list,prg,modulo_ratio_range=[0.2,0.51],output_ratio_range=[0.12,0.2]): 
