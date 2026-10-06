@@ -1,14 +1,44 @@
 from morebs2.disjoint_kcy import * 
-from morebs2.numerical_generator import default_std_Python_prng
+from morebs2.numerical_generator import default_std_Python_prng,modulo_in_range,\
+    safe_modulo_in_range,prg__single_to_int,prg_choose_n
+from collections import deque 
 
+DEFAULT_MAX_KCYCLE_FUNCTION_MODULAR_RANGE = [300,331] 
+DEFAULT_KCYCLE_CPERIOD_LENGTH_RANGE = [4,202] 
+DEFAULT_KCYCLE_SIZE_RANGE = [5,17] 
 
-def cumulative_modulo_boolean_function(modulo,true_output_set:set):  
-    assert is_vector(np.array(V)) 
-    q = np.sum(V) % modulo 
-    return q in true_output_set
+def cumulative_modulo_boolean_function(modulo,true_output_set:set):
+
+    def f(V):   
+        assert is_vector(np.array(V)) 
+        q = np.sum(V) % modulo 
+        return q in true_output_set
+
+    return f 
+
+def generate_kcycle_function__CMB(cperiod_seq,modulo_ratio_range,output_ratio_range,prg):  
+    V = np.array(cperiod_seq) - 1
+    s = np.sum(V)
+    assert s >= 7, "sum of (sequence - 1) must be at least 7" 
+    assert np.min(cperiod_seq) >= 2 
+
+    q = safe_modulo_in_range(prg(),modulo_ratio_range) 
+    x = int(round(s * q))
+
+    if x >= DEFAULT_MAX_KCYCLE_FUNCTION_MODULAR_RANGE[1]: 
+        x = modulo_in_range(int(prg()),MAX_MODULAR_RANGE) 
+
+    q2 = safe_modulo_in_range(prg(),output_ratio_range) 
+    num_qual = int(round(x * q2))
+
+    x2 = [i for i in range(x)] 
+
+    prg_ = prg__single_to_int(prg)     
+    qual = set(prg_choose_n(x2,num_qual,prg_,is_unique_picker=True)) 
+    return cumulative_modulo_boolean_function(x,qual) 
 
 """
-Inconsistent Model Type (C)yclical (C)omponent of (D)emonstration and (E)xecution. 
+Inconsistent Function Type (C)yclical (C)omponent of (D)emonstration and (E)xecution. 
 
 Extension of <DisjointKCyclesIterator> with hop=1 for every cycle. 
 
@@ -79,7 +109,7 @@ class InconsistentFunctionTypeCCDE:
             x_ = self.map_result_by_contra(x,True) 
 
             self.contra_seq.append(self.contra_mode) 
-            self.switch_contra() 
+            self.switch_contra(ext_prng) 
             self.Q.append(x_)  
         return list(self.Q) 
 
@@ -92,3 +122,17 @@ class InconsistentFunctionTypeCCDE:
             x_ = self.map_result_by_contra(x,False)
             q.append(x_)
         return q 
+
+    @staticmethod 
+    def generate_instance(cperiod_seq:list,prg,modulo_ratio_range=[0.2,0.51],output_ratio_range=[0.12,0.2]): 
+
+        F = generate_kcycle_function__CMB(cperiod_seq,modulo_ratio_range,output_ratio_range,prg)
+        F_o = lambda x: not bool(x) 
+        contra_mode = modulo_in_range(int(prg()),[-1,3]) 
+        return InconsistentFunctionTypeCCDE(cperiod_seq,F,F_o,contra_mode=-1)
+
+    @staticmethod
+    def generate_instance_v2(k,prg): 
+        l = modulo_in_range(int(prg()),DEFAULT_KCYCLE_SIZE_RANGE)
+        cperiod_seq = [modulo_in_range(int(prg()),DEFAULT_KCYCLE_CPERIOD_LENGTH_RANGE) for _ in range(l)]  
+        return InconsistentFunctionTypeCCDE.generate_instance(cperiod_seq,prg) 
