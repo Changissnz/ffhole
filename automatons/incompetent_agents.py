@@ -1,31 +1,6 @@
 from falses.incon_ccde import * 
 from falses.uncertainty_sim import * 
 
-class IncompetentAgentGroupTypeDEGD: 
-
-    def __init__(self,incon_func:InconsistentFunctionTypeCCDE,uncertainty_sim,prg_seq,certainty_delta_seq):
-
-        assert len(prg_seq) == len(certainty_delta_seq) 
-        for x in prg_seq: assert type(x) in {FunctionType,MethodType}
-
-        assert is_vector(np.array(certainty_delta_seq)) 
-        assert 0.0 < np.min(certainty_delta_seq) <= np.max(certainty_delta_seq) <= 1.0
-
-        self.agents = [] 
-
-        return 
-
-    def init_agents(self,incon_func,usim,prg_seq,certainty_delta_seq):
-
-        self.agents.clear() 
-        
-        l = len(prg_seq)
-        for i in range(l):
-            p,c = prg_seq[i],certainty_delta_seq[i] 
-            q = IncompetentAgentTypeDEGD(i,deepcopy(incon_func),deepcopy(usim),p,c) 
-            self.agents.append(q) 
-        return 
-
 """
 Agent with simulated incompetence methodology, built from 
     <InconsistentFunctionTypeCCDE> + <UncertaintySimulatorTypeGGD>. 
@@ -114,3 +89,145 @@ class IncompetentAgentTypeDEGD:
         # contra, decrease certainty 
         self.default_certainty = self.default_certainty * self.certainty_delta
         return 
+
+"""
+A structure to operate k <IncompetentAgentTypeDEGD> agents that have identical 
+<InconsistentFunctionTypeCCDE>s and <UncertaintySimulatorTypeGGD>s.
+""" 
+class IncompetentAgentGroupTypeDEGD: 
+
+    def __init__(self,incon_func:InconsistentFunctionTypeCCDE,uncertainty_sim,prg_seq,certainty_delta_seq):
+
+        assert len(prg_seq) == len(certainty_delta_seq) 
+        for x in prg_seq: assert type(x) in {FunctionType,MethodType}
+
+        assert is_vector(np.array(certainty_delta_seq)) 
+        assert 0.0 < np.min(certainty_delta_seq) <= np.max(certainty_delta_seq) <= 1.0
+
+        self.agents = [] 
+        self.init_agents(incon_func,uncertainty_sim,prg_seq,certainty_delta_seq)
+        return 
+
+    def init_agents(self,incon_func,usim,prg_seq,certainty_delta_seq):
+
+        self.agents.clear() 
+        
+        l = len(prg_seq)
+        for i in range(l):
+            p,c = prg_seq[i],certainty_delta_seq[i] 
+            q = IncompetentAgentTypeDEGD(i,deepcopy(incon_func),deepcopy(usim),p,c) 
+            self.agents.append(q) 
+        return 
+
+    def demonstrate(self,num_iter:int,ext_prng): 
+        d = {}
+
+        for x in self.agents:
+            dx = x.demonstrate(num_iter,ext_prng)
+            d[x.idn] = dx 
+        return d 
+
+    def execute(self):
+        d = {}
+
+        for x in self.agents:
+            d[x.idn] = x.execute()
+        return d 
+
+"""
+Demander agent in False Incompetence. Agent makes demands to k <IncompetentAgentTypeDEGD>s. 
+"""
+class FIDemander:
+
+    def __init__(self,demand_iterations_seq,prg): 
+        for d in demand_iterations_seq: assert type(d) in {int,np.int32,np.int64}  
+        assert is_vector(np.array(demand_iterations_seq))
+        assert type(prg) in {MethodType,FunctionType}
+
+        self.demand_iterations_seq = demand_iterations_seq 
+        self.prg = prg 
+
+        self.demo_predict_map = dict() 
+        self.accept_indices = [] 
+
+    #----------------------- prediction phase 1 
+
+    def recv_demonstration_dict(self,M):
+        assert type(M) == dict 
+
+        self.demo_predict_map.clear() 
+        
+        for idn,V in M.items():
+            V_d = self.accept_contra_decisions(V)
+            self.demo_predict_map[idn] = V_d 
+    
+    def accept_contra_decisions(self,V):
+        assert len(V.shape) == 2 and V.shape[0] == 2 
+
+        l = V.shape[1] 
+        V_b = [] 
+        for i in range(l): 
+            q = V[0,i] 
+            u = V[1,i] 
+
+            d = prg_decimal(self.prg,[0.,1.]) 
+            accept = d >= u 
+
+            V_b.append((q,accept))
+
+        return V_b 
+
+    #------------------------ prediction phase 2 
+
+    def calculate_accept_indices(self,M2): 
+
+        c = Counter([]) 
+
+        for idn,V in M2.items():
+            I = self.choose_indices(idn,V)
+            c = c + Counter(I)
+        return self.majority_vote_on_indices(c,len(M2))
+
+    def majority_vote_on_indices(self,c:Counter,num_agents): 
+        assert type(c) == Counter 
+        assert type(num_agents) == int and num_agents > 0 
+
+        indices = set()
+        for k,v in c.items(): 
+            if v >= num_agents / 2: 
+                indices |= {k} 
+
+        self.accept_indices = sorted(indices) 
+        return self.accept_indices
+
+    def choose_indices(self,idn,V):
+
+        V2 = self.demo_predict_map[idn]
+        l = len(V) 
+        assert l == len(V2) 
+
+        indices = [] 
+        for i in range(l): 
+            accept,cmode = V2[i]
+            a = V[i]
+
+            expected = None 
+            if cmode == -1:
+                expected = a
+            elif cmode = 0: 
+                expected = not a 
+            elif cmode == 1: 
+                expected = a 
+            else:
+                expected = not a 
+            
+            # case: not accept 
+            if not accept:
+                expected = not expected                 
+
+            # element expected to be True 
+            if expected: 
+                indices.append(i)
+
+        return indices 
+
