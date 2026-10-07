@@ -59,6 +59,9 @@ class IncompetentAgentTypeDEGD:
         q1 = deepcopy(self.certainty_seq) 
         return np.vstack((q0,q1))
 
+    def demo_results(self): 
+        return deepcopy(self.ifunc.Q) 
+
     def execute(self): 
         return self.ifunc.exec_iterate()
 
@@ -125,6 +128,12 @@ class IncompetentAgentGroupTypeDEGD:
         for x in self.agents:
             dx = x.demonstrate(num_iter,ext_prng)
             d[x.idn] = dx 
+        return d 
+
+    def demo_results(self): 
+        d = {} 
+        for x in self.agents: 
+            d[x.idn] = x.demo_results() 
         return d 
 
     def execute(self):
