@@ -4,6 +4,9 @@ from morebs2.matrix_methods import is_valid_range
 from morebs2.numerical_generator import prg_decimal,modulo_in_range
 from morebs2.measures import zero_div
 
+DEFAULT_USIM_TYPEGGD_VERTEX_DEGREE_RANGE = [10,37]
+DEFAULT_USIM_TYPEGGD_EDGE_CONN_RANGE = [0.1,0.45]
+
 """
 Uncertainty Simulator Type (G)enerated (G)raph (D)ifferential.
 
@@ -12,7 +15,8 @@ from an external PRNG with `prg`.
 """
 class UncertaintySimulatorTypeGGD: 
 
-    def __init__(self,prg,vertex_degree_range,edge_connectivity_range): 
+    def __init__(self,prg,vertex_degree_range=DEFAULT_USIM_TYPEGGD_VERTEX_DEGREE_RANGE,\
+        edge_connectivity_range=DEFAULT_USIM_TYPEGGD_EDGE_CONN_RANGE): 
         assert is_valid_range(vertex_degree_range,True,False) 
         assert is_valid_range(edge_connectivity_range,False,False) 
 

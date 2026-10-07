@@ -26,7 +26,7 @@ def generate_kcycle_function__CMB(cperiod_seq,modulo_ratio_range,output_ratio_ra
     x = int(round(s * q))
 
     if x >= DEFAULT_MAX_KCYCLE_FUNCTION_MODULAR_RANGE[1]: 
-        x = modulo_in_range(int(prg()),MAX_MODULAR_RANGE) 
+        x = modulo_in_range(int(prg()),DEFAULT_MAX_KCYCLE_FUNCTION_MODULAR_RANGE) 
 
     q2 = safe_modulo_in_range(prg(),output_ratio_range) 
     num_qual = int(round(x * q2))

@@ -9,7 +9,7 @@ def summarize_boolean_action_map(idn_to_boolvec,selected_indices):
         for v in idn_to_boolvec.values(): 
             c += int(v[i]) 
 
-        bools.append(c / len(idn_to_boolvec))
+        bools.append((c / len(idn_to_boolvec)) >= 0.5)
     return bools  
 
 class FalseIncompetency:
@@ -49,6 +49,8 @@ class FalseIncompetency:
         # process demander selection of agent results 
         R = self.igroup.execute()
         results = summarize_boolean_action_map(R,I)
+
+        # add to cumulative results 
         c = Counter(results) 
         self.results += c 
         self.di_index += 1 

@@ -1,5 +1,7 @@
 from falses.incon_ccde import * 
 from falses.uncertainty_sim import * 
+from morebs2.numerical_generator import prg_to_prg__LCG_sequence__v2
+from collections import Counter
 
 """
 Agent with simulated incompetence methodology, built from 
@@ -76,12 +78,12 @@ class IncompetentAgentTypeDEGD:
         for i in range(l): 
             c0 = self.usim.cmp(ext_prng) 
             contra_mode = self.ifunc.contra_seq[i] 
-            self.certainty_delta(contra_mode) 
+            self.certainty_delta_(contra_mode) 
             self.certainty_seq.append((1 - self.default_certainty) * c0) 
 
         return 
 
-    def certainty_delta(self,contra_mode): 
+    def certainty_delta_(self,contra_mode): 
 
         # no contra, increase certainty 
         if contra_mode == -1: 
@@ -142,6 +144,16 @@ class IncompetentAgentGroupTypeDEGD:
         for x in self.agents:
             d[x.idn] = x.execute()
         return d 
+
+    @staticmethod
+    def generate_instance(k,prg): 
+        incon_func = InconsistentFunctionTypeCCDE.generate_instance_v2(k,prg) 
+        usim = UncertaintySimulatorTypeGGD(prg) 
+
+        prg_seq = prg_to_prg__LCG_sequence__v2(prg,k,[1+2/11,5-4/9])
+        certainty_delta_seq = [prg_decimal(prg,[0.2,0.8]) for _ in range(k)] 
+
+        return IncompetentAgentGroupTypeDEGD(incon_func,usim,prg_seq,certainty_delta_seq) 
 
 """
 Demander agent in False Incompetence. Agent makes demands to k <IncompetentAgentTypeDEGD>s. 
@@ -223,7 +235,7 @@ class FIDemander:
             expected = None 
             if cmode == -1:
                 expected = a
-            elif cmode = 0: 
+            elif cmode == 0: 
                 expected = not a 
             elif cmode == 1: 
                 expected = a 
