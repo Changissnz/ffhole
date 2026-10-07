@@ -53,10 +53,11 @@ Then to get actual (executive) values, call
 """
 class InconsistentFunctionTypeCCDE: 
 
-    def __init__(self,cperiod_seq:list,F,F_o,contra_mode:int=-1):  
+    def __init__(self,cperiod_seq:list,F,F_o,contra_mode:int=-1,record_actual:bool=False):  
         self.kcy = DisjointKCyclesIterator(cperiod_seq,hop=1)
 
         assert contra_mode in {-1,0,1,2}
+        assert type(record_actual) == bool
 
         # literal function 
         self.F = F 
@@ -71,6 +72,7 @@ class InconsistentFunctionTypeCCDE:
         # 1 -> d:1 + e:(!d)
         # 2 -> d:0 + e:(!d)
         self.contra_mode = contra_mode 
+        self.record_actual = record_actual
 
         # observed demo 
         self.Q = deque() 
@@ -110,7 +112,9 @@ class InconsistentFunctionTypeCCDE:
 
         for _ in range(num_iter): 
             x = next(self) 
-            self.Q_.append(x) 
+
+            if self.record_actual:
+                self.Q_.append(x) 
 
             x_ = self.map_result_by_contra(x,True) 
             self.contra_seq.append(self.contra_mode) 
