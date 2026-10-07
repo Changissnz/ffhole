@@ -229,7 +229,11 @@ class FIDemander:
 
         indices = [] 
         for i in range(l): 
-            accept,cmode = V2[i]
+            cmode,accept = V2[i]
+            #   NOTE: make sure 
+            assert type(accept) in {bool,np.bool} and \
+                cmode in {-1,0,1,2}, "got acc={},cmode={}".format(accept,cmode)  
+
             a = V[i]
 
             expected = None 
