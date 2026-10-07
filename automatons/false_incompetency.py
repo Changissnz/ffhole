@@ -51,3 +51,4 @@ class FalseIncompetency:
         results = summarize_boolean_action_map(R,I)
         c = Counter(results) 
         self.results += c 
+        self.di_index += 1 
