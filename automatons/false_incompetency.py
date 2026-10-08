@@ -12,6 +12,34 @@ def summarize_boolean_action_map(idn_to_boolvec,selected_indices):
         bools.append((c / len(idn_to_boolvec)) >= 0.5)
     return bools  
 
+"""
+Automaton that acts as an environment for the activity of two classes of agents:
+(I) a `demander` <FIDemander>; `demander` demands a group of k agents to demonstrate 
+    its competence in executing tasks, formatted as a vector V_i of iterations. 
+(II) a group of k agents, <IncompetentAgentGroupTypeDEGD>. Agents demonstrate and 
+     execute actions according to the demands (number of iterations) given to them 
+     by the `demander`.
+
+This procedure is used for False Incompetency. 
+
+- the `demander` demands every agent of `igroup` to demonstrate its actions over k 
+  iterations. 
+- `demander` receives a map with information on that demonstration, 
+    agent idn -> matrix of shape (2,k), 
+        [0] contradiction mode, {-1,0,1,2},
+        [1] uncertainty towards observer (the `demander`), [0.,1.] 
+- `demander` determines the subset of indices I of those k iterations would yield 
+   executive actions from `igroup` that output TRUE, by majority vote. 
+
+    **Demander objective** 
+Objective is for demander to select the executive actions A such that 
+    COUNT(A,true) - COUNT(A,false) 
+is the greatest possible given V_i, the vector of number of iterations per 
+demand. 
+
+NOTE: see file<automatons.incompetent_agents> for the mathematics behind this 
+decision-making. 
+"""
 class FalseIncompetency:
 
     def __init__(self,demander:FIDemander,igroup:IncompetentAgentGroupTypeDEGD): 
@@ -27,6 +55,9 @@ class FalseIncompetency:
         self.results = Counter([])
         return 
 
+    """
+    main method
+    """ 
     def exec_next_demand(self):
         if self.fin_stat == True: 
             return 
@@ -54,3 +85,6 @@ class FalseIncompetency:
         c = Counter(results) 
         self.results += c 
         self.di_index += 1 
+
+    def score(self): 
+        return self.results[True] - self.results[False] 

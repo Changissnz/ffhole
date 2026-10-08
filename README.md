@@ -9,5 +9,5 @@ series of algorithms that model the means and effects of false feedbacks?
 ## Series 
 
 [tested] False Entry  
-[pending] False Incompetency  
+[tested] False Incompetency  
 

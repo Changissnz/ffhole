@@ -44,5 +44,19 @@ class InconsistentFunctionTypeCCDEFunctions(unittest.TestCase):
 
         assert np.all(np.where(V != V2)[0] == np.array([ 5,  9, 10, 12, 14, 15, 18]))
 
+    def test__InconsistentFunctionTypeCCDE__iterate__case_3(self): 
+        prg = prg__LCG(87.6,-154.3,76.65,9075.44) 
+        F = InconsistentFunctionTypeCCDE.generate_instance_v2(5,prg)
+        F.record_actual = True 
+        F.demo_iterate(5,prg)  
+        V0 = list(F.Q)
+        C = list(F.contra_seq)
+        V = F.exec_iterate()
+
+        assert F.Q_ == deque([False, False, False, False, False])
+        assert V0 == [False, True, False, False, True] 
+        assert np.all(V == np.array([False,  False, False,  False, False]))
+        assert C == [-1, 2, -1, -1, 2]
+
 if __name__ == '__main__':
     unittest.main()

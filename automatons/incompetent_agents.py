@@ -146,11 +146,11 @@ class IncompetentAgentGroupTypeDEGD:
         return d 
 
     @staticmethod
-    def generate_instance(k,prg): 
+    def generate_instance(k,prg,mod_range=[1+2/11,5-4/9]): 
         incon_func = InconsistentFunctionTypeCCDE.generate_instance_v2(k,prg) 
         usim = UncertaintySimulatorTypeGGD(prg) 
 
-        prg_seq = prg_to_prg__LCG_sequence__v2(prg,k,[1+2/11,5-4/9])
+        prg_seq = prg_to_prg__LCG_sequence__v2(prg,k,mod_range)
         certainty_delta_seq = [prg_decimal(prg,[0.2,0.8]) for _ in range(k)] 
 
         return IncompetentAgentGroupTypeDEGD(incon_func,usim,prg_seq,certainty_delta_seq) 
@@ -171,16 +171,27 @@ class FIDemander:
         self.demo_predict_map = dict() 
         self.accept_indices = [] 
 
+        self.index = 0 
+
     #----------------------- prediction phase 1 
 
+    """
+    M := agent idn -> np.array with shape of (2,l),  
+        [0] : contra mode, {-1,0,1,2}, 
+        [1] : uncertainty measure. 
+    """ 
     def recv_demonstration_dict(self,M):
+        assert self.index <= len(self.demand_iterations_seq) 
         assert type(M) == dict 
 
         self.demo_predict_map.clear() 
-        
+        l = self.demand_iterations_seq[self.index]
         for idn,V in M.items():
+            assert V.shape[1] == l, "got {} wanted {}".format(len(V),l)
             V_d = self.accept_contra_decisions(V)
             self.demo_predict_map[idn] = V_d 
+        
+        self.index += 1 
     
     def accept_contra_decisions(self,V):
         assert len(V.shape) == 2 and V.shape[0] == 2 
@@ -200,10 +211,15 @@ class FIDemander:
 
     #------------------------ prediction phase 2 
 
+    """
+    M2 := dict, idn -> vector<bool> (the demonstrative actions) 
+
+    return:
+    - list<indices to accept for execution> 
+    """
     def calculate_accept_indices(self,M2): 
 
         c = Counter([]) 
-
         for idn,V in M2.items():
             I = self.choose_indices(idn,V)
             c = c + Counter(I)
