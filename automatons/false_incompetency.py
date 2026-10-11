@@ -14,7 +14,7 @@ def summarize_boolean_action_map(idn_to_boolvec,selected_indices):
 
 """
 Automaton that acts as an environment for the activity of two classes of agents:
-(I) a `demander` <FIDemander>; `demander` demands a group of k agents to demonstrate 
+(I) a `demander` <FIDemander>; `demander` demands a group of k agents to demonstrate
     its competence in executing tasks, formatted as a vector V_i of iterations. 
 (II) a group of k agents, <IncompetentAgentGroupTypeDEGD>. Agents demonstrate and 
      execute actions according to the demands (number of iterations) given to them 
