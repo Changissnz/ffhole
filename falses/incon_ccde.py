@@ -42,7 +42,7 @@ Inconsistent Function Type (C)yclical (C)omponent of (D)emonstration and (E)xecu
 
 Extension of <DisjointKCyclesIterator> with hop=1 for every cycle. 
 
-A dual-output function. The correlation between demonstrative (prior) outputs 
+A dual-output function. The correspondence between demonstrative (prior) outputs 
 and executive (post) outputs depends on the contradiction mode this structure is 
 in. 
 
