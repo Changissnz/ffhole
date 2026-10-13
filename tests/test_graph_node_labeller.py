@@ -21,7 +21,6 @@ def sample_graph_V30():
 """
 py -m tests.test_graph_node_labeller
 """
-# NOTE: runtime on developer's device: approx. 180 seconds. 
 class NodeLabellingFunctionTypeSGAMethods(unittest.TestCase):
 
     def test__NodeLabellingFunctionTypeSGA__next__case_1(self): 
@@ -51,6 +50,34 @@ class NodeLabellingFunctionTypeSGAMethods(unittest.TestCase):
             28: 2, 21: 2, 6: 6, 20: 5, 4: 4, 1: 5, 29: 4, 14: 4,\
             18: 6, 24: 0, 22: 3, 8: 0, 13: 4, 27: 4, 25: 1, 12: 1,\
             23: 0}
+
+    def test__NodeLabellingFunctionTypeSGA__next__case_2(self):
+        G,prg = sample_graph_V30() 
+
+        start_node = 22 
+        is_bfs = False 
+        label_set = {i for i in range(5)} 
+        activation_function_type = "prng delta"
+        verbose = True 
+
+        F = NodeLabellingFunctionTypeSGA(G,start_node,is_bfs,\
+            label_set,activation_function_type,prg,verbose)
+
+        nodeset_seq = [] 
+        while not F.fin_stat: 
+            q = next(F) 
+            nodeset_seq.append(q) 
+
+        assert nodeset_seq == [[9], [10], [14], [25], [20],\
+            [0], [21], [18], [3], [26], [28], [11], [2], [5],\
+            [13], [1], [16], [29], [7], [19], [15], [24], [4],\
+            [8], [27], [17], [6], [12], [23], None]
+
+        assert F.node2label_map == {22: 3, 9: 3, 10: 3, 14: 3,\
+            25: 3, 20: 4, 0: 4, 21: 4, 18: 0, 3: 0, 26: 2, 28: 2,\
+            11: 0, 2: 0, 5: 0, 13: 4, 1: 4, 16: 4, 29: 4, 7: 1,\
+            19: 1, 15: 2, 24: 0, 4: 3, 8: 3, 27: 3, 17: 0, 6: 1,\
+            12: 1, 23: 1}
 
 
 if __name__ == '__main__':
