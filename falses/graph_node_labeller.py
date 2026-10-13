@@ -1,4 +1,9 @@
+from xFS_bots.graph_models.bfs import * 
 from xFS_bots.graph_models.dfs import * 
+from morebs2.numerical_generator import prg_decimal,prg_seqsort_ties,prg_to_prg__LCG_sequence,modulo_in_range
+from morebs2.matrix_methods import is_valid_range
+from types import FunctionType,MethodType
+from collections import Counter 
 
 def constant_decimal_multiple_function(d): 
     assert 0. <= d <= 1.
@@ -12,8 +17,8 @@ def constant_decimal_multiple_function(d):
 def prg_decreasing_decimal_delta_function(prg,delta_range=[0.,0.5]):
 
     assert type(prg) in {MethodType,FunctionType} 
-    assert is_valid_range(delta_range,False,True)
-    assert 0. <= delta_range <= 1.
+    assert is_valid_range(delta_range,False,False)
+    assert 0. <= delta_range[0] < delta_range[1] <= 1.
 
     def f(m): 
         q = prg_decimal(prg,delta_range)
@@ -63,12 +68,12 @@ class NodeLabellingFunctionTypeSGA:
         assert type(start_node) == type(None) or start_node in G 
         assert type(is_bfs) == bool 
         assert type(label_set) == set 
-        assert type(activation_function_type) in {"multiple","prng delta","both"}  
+        assert activation_function_type in {"multiple","prng delta","both"}  
         assert type(prg) in {MethodType,FunctionType}
         assert type(verbose) == bool 
 
         self.G = G 
-        self.start_node = starting_node
+        self.start_node = start_node
         self.is_bfs = is_bfs 
         self.label_set = label_set 
         self.afunc_type = activation_function_type
@@ -90,20 +95,18 @@ class NodeLabellingFunctionTypeSGA:
         return 
 
     def preproc(self): 
-        if type(self.start_node) != type(None): 
-            return 
-
-        nodes = sorted(self.G.keys())
-        i = int(self.prg()) % len(nodes) 
-        self.start_node = nodes[i]
+        if type(self.start_node) == type(None): 
+            nodes = sorted(self.G.keys())
+            i = int(self.prg()) % len(nodes) 
+            self.start_node = nodes[i]
 
         if self.is_bfs: 
-            nextnode_priority_function = DEFAULT_PRNG_TO_NEXTNODE_PRIORITY_FUNCTION__BFS(prg)
+            nextnode_priority_function = DEFAULT_PRNG_TO_NEXTNODE_PRIORITY_FUNCTION__BFS(self.prg)
             self.gtrav = BFSCache(self.start_node,self.G,\
                 edge_cost_function=DEFAULT_EDGE_COST_FUNCTION,\
                 nextnode_priority_function=nextnode_priority_function,no_duplicate_touch_nodes=True)
         else: 
-            nextnode_priority_function = DEFAULT_PRNG_TO_NEXTNODE_PRIORITY_FUNCTION__DFS(prg)
+            nextnode_priority_function = DEFAULT_PRNG_TO_NEXTNODE_PRIORITY_FUNCTION__DFS(self.prg)
             self.gtrav = DFSCache(self.start_node,self.G,\
                 edge_cost_function=DEFAULT_EDGE_COST_FUNCTION,search_head_type=1,\
                 nextnode_priority_function=nextnode_priority_function,no_duplicate_touch_nodes=True)
@@ -112,11 +115,19 @@ class NodeLabellingFunctionTypeSGA:
         return
 
     def __next__(self): 
-        while not self.fin_stat: 
+        if self.fin_stat: return 
+
+        stat = False 
+        q = None 
+        while not stat and not self.fin_stat: 
             q = self.travel_to_next_nodes() 
+            if type(q) != type(None): 
+                stat = True 
 
             if self.verbose: 
-                if type(q) != type(None): print("labels for nodes: ",q) 
+                if type(q) != type(None): 
+                    print("labelled nodes: ",q) 
+        return q 
 
     def travel_to_next_nodes(self): 
         if self.fin_stat: 
@@ -131,12 +142,11 @@ class NodeLabellingFunctionTypeSGA:
         self.gtrav.move_one() 
 
         prev_edges = self.gtrav.previous_edges
-        if len(prev_edges) == 0: 
+        new_nodes = set([p[1] for p in prev_edges]) - touched 
+        if len(new_nodes) == 0: 
             return self.travel_to_next_nodes() 
 
-        new_nodes = set([p[1] for p in prev_edges]) - touched 
         new_nodes = prg_seqsort(sorted(new_nodes),self.prg) 
-
         for node in new_nodes: self.label_node(node,ref)
         return new_nodes 
         
@@ -147,7 +157,7 @@ class NodeLabellingFunctionTypeSGA:
             i = int(self.prg()) % len(q) 
             label = q[i] 
 
-            weight = prg_decimal(self.prg,[0.5,0.1]) 
+            weight = prg_decimal(self.prg,[0.5,1.]) 
             F = self.generate_afunc() 
 
             self.node2actfunc_map[node] = F 
@@ -169,12 +179,17 @@ class NodeLabellingFunctionTypeSGA:
             l = self.node2label_map[parent_node] 
             f = F 
             w2 = q 
-
+            if self.verbose: 
+                print("new node {} same {} weight {}".format(node,l,w2)) 
         # case: choose a different label 
         else: 
             l = self.counter_label_for_node(node)
             f = self.generate_afunc() 
-            w2 = prg_decimal(self.prg,[0.5,0.1]) 
+            w2 = prg_decimal(self.prg,[0.5,1.]) 
+
+            if self.verbose: 
+                print("new node {} label {} parent/label {}/{} weight {}".format(node,l,parent_node,\
+                    self.node2label_map[parent_node],w2)) 
 
         self.node2label_map[node] = l 
         self.node2actfunc_map[node] = f 
@@ -182,10 +197,12 @@ class NodeLabellingFunctionTypeSGA:
         return 
 
     def counter_label_for_node(self,node): 
-        c = Counter({i:0 for i in self.label_set}) 
-        c = c + Counter([self.node2label_map[n] for n in self.G[node] if n \
+        c = Counter([self.node2label_map[n] for n in self.G[node] if n \
             in self.node2label_map]) 
+        for l in self.label_set: 
+            if l not in c: c[l] = 0 
         c2 = [(k,v) for k,v in c.items()]
+
         q = prg_seqsort_ties(c2,self.prg,vf=lambda x:x[1]) 
         return q[0][0] 
 
