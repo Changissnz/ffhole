@@ -5,14 +5,14 @@ from morebs2.numerical_generator import prg_decimal
 from types import MethodType,FunctionType
 
 """
-Proof Differential Simulator Type (S)imple (G)raph (T)raversal. 
+Proof Differential Simulator Type (S)tochastic (G)raph (T)raversal. 
 
 Algorithm models how agents can construct different proofs (paths), 
 given the same starting material (simple graphs). 
 ----------------------------------------------------------------------------- 
 
 Graph `G` represents surface of decisions and connections b/t those 
-decisions is where proof takes place. 
+decisions. `G` is where proof takes place. 
 
 Parameter `node_path_solution_seq` contains paths, each starting at 
 node `start_node`, that act as the set of solutions. 
@@ -51,6 +51,9 @@ class ProofDifferentialSimulatorTypeSGT:
         lengths = [len(p) for p in self.node_path_soln]
         self.minmax_path_lengths = (min(lengths),max(lengths))
 
+    """
+    main method 
+    """
     def exec(self,ext_prg):
         ext_path = self.external_agent_path(ext_prg)
         G0 = MicroGraph(ext_path.to_graph(True)) 
@@ -98,3 +101,19 @@ class ProofDifferentialSimulatorTypeSGT:
         L = [(c/s,n) for (n,c) in L] 
         pr = prg_decimal(ext_prg,[0.,1.]) 
         return probability_to_label(L,pr)
+
+"""
+Proof Differential Simulator Type (C)ontextual (S)tochastic (G)raph (T)raversal. 
+"""
+class ProofDifferentialSimulatorTypeCSGT(ProofDifferentialSimulatorTypeSGT): 
+
+    def __init__(self): 
+        return 
+
+"""
+Proof Differential Simulator Type (A)uto-(C)orrected (S)tochastic (G)raph (T)raversal. 
+"""
+class ProofDifferentialSimulatorTypeACSGT(ProofDifferentialSimulatorTypeCSGT):  
+
+    def __init__(self): 
+        return 
