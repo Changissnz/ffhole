@@ -183,6 +183,9 @@ class GraphTraversalContextCR:
 
 """
 Proof Differential Simulator Type (C)ontextual (S)tochastic (G)raph (T)raversal. 
+
+Extension of class<ProofDifferentialSimulatorTypeSGT> and uses class<GraphTraversalContextCR> 
+to influence external agent proof construction. 
 """
 class ProofDifferentialSimulatorTypeCSGT(ProofDifferentialSimulatorTypeSGT): 
 
@@ -204,5 +207,142 @@ Proof Differential Simulator Type (A)uto-(C)orrected (S)tochastic (G)raph (T)rav
 """
 class ProofDifferentialSimulatorTypeACSGT(ProofDifferentialSimulatorTypeCSGT):  
 
-    def __init__(self): 
+    def __init__(self,G,start_node,edge_cost_function,node_path_solution_seq,\
+        gtc_cr:GraphTraversalContextCR,internal_prg,max_num_path_corrections:int=3,\
+        verbose:bool=True): 
+
+        assert type(internal_prg) in {MethodType,FunctionType} 
+        assert type(max_num_path_corrections) == int and max_num_path_corrections >= 0 
+        assert type(verbose) == bool 
+
+        super().__init__(G,start_node,edge_cost_function,node_path_solution_seq,gtc_cr)
+        
+        self.internal_prg = internal_prg
+        self.max_num_path_corrections = max_num_path_corrections
+        self.verbose = verbose 
+
+        self.current_num_path_corrections = 0
+
+        self.cumulative_ac_sum = 0.0
+        self.current_ac_sum = 0.0 
+
+        self.current_path = None 
+        self.current_index = None 
         return 
+
+    def external_agent_path(self,ext_prg):  
+        self.current_ac_sum = 0.0 
+        self.current_num_path_corrections = 0 
+
+        i = int(ext_prg() + self.internal_prg()) % len(self.node_path_soln)  
+        self.current_path = self.node_path_soln[i] 
+        self.current_index = 0 
+
+        P = [self.start_node] 
+        E = [] 
+
+        stat = True 
+        while stat: 
+            q = P[-1]
+            n = self.next_node(q,ext_prg) 
+            print()
+            stat = type(n) != type(None) 
+
+            if stat: 
+                P.append(n) 
+                E.append(self.ecf(q,n))  
+        return NodePath.preload(P,E) 
+
+    def next_node(self,current_node,ext_prg):
+        n = self.next_node_(current_node,ext_prg) 
+        if type(n) == type(None): return 
+
+        target = self.current_path[self.current_index + 1]
+
+        if self.verbose: 
+            print("next={},current={},target={}, # corrections={}".format(n,current_node,\
+                target,self.current_num_path_corrections))
+            print("current target path --> ",self.current_path.p)
+            print()
+
+        # case: target met 
+        if n == target: 
+            self.current_index += 1 
+            return n 
+
+        # case: target not met, 
+        self.current_num_path_corrections += 1
+
+        # subcase: exceeded maximum number of path corrections (missed target node) 
+        if self.current_num_path_corrections > self.max_num_path_corrections: 
+            return None 
+
+        P,i = self.path_info_for_node(n)
+        if type(P) != type(None): 
+            self.current_path = P 
+            self.current_index = i 
+        else: 
+            self.current_index += 1 
+
+        return n 
+
+    def next_node_(self,current_node,ext_prg): 
+        assert self.current_path[self.current_index] == current_node 
+
+        if self.current_index >= len(self.current_path) -1: return None 
+
+        L = self.next_node_pr_seq(current_node)
+        if type(L) == type(None): return None 
+
+        target_node = self.current_path[self.current_index + 1] 
+
+        pr = prg_decimal(ext_prg,[0.,1.]) 
+        
+        acorr = self.auto_correct_probability(pr,target_node,L) 
+        pr += acorr 
+
+        self.current_ac_sum += abs(acorr) 
+        self.cumulative_ac_sum += abs(acorr) 
+        return probability_to_label(L,pr)
+
+    def auto_correct_probability(self,pr,target_node,pr2node_seq): 
+        # case: no auto-correction needed
+        if probability_to_label(pr2node_seq,pr) == target_node: 
+            return 0.0 
+
+        # get all indices where target node occurs 
+        indices = [] 
+        for i,x in enumerate(pr2node_seq): 
+            if x[1] == target_node: 
+                indices.append(i) 
+
+        # case: target node not in options 
+        if len(indices) == 0: 
+            return 0.0 
+
+        pr_seq = [p[0] for p in pr2node_seq] 
+        X = np.cumsum(pr_seq) 
+        
+        q = 0 
+        pr_seq2 = [] 
+        for i,x in enumerate(pr2node_seq): 
+            pr_seq2.append((q,X[i]))
+            q = X[i]
+
+        S = np.array([pr_seq2[i] for i in indices]).flatten() 
+        d = S - pr 
+        i2 = np.argmin(np.abs(d)) 
+
+        return d[i2]
+
+    """
+    return: 
+    - one <NodePath> in `node_path_soln` that contains `node`, index of `node` in the <NodePath>
+    """
+    def path_info_for_node(self,node): 
+
+        for x in self.node_path_soln: 
+            ns = x.p 
+            if node in ns: 
+                return x,ns.index(node)
+        return None,None 
