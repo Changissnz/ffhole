@@ -1,8 +1,9 @@
 from xFS_bots.graph_models.node_path import * 
 from xFS_bots.graph_models.micrograph import * 
 from morebs2.pr2label import * 
-from morebs2.numerical_generator import prg_decimal,modulo_in_range,safe_modulo_in_range
+from morebs2.numerical_generator import prg_decimal,modulo_in_range,safe_modulo_in_range,prg_choose_n
 from types import MethodType,FunctionType
+from math import ceil 
 
 """
 Proof Differential Simulator Type (S)tochastic (G)raph (T)raversal. 
@@ -178,7 +179,7 @@ class GraphTraversalContextCR:
                 x = q[i2]  
                 D[n][n3] = x 
 
-        return D 
+        return GraphTraversalContextCR(D)  
 
 """
 Proof Differential Simulator Type (C)ontextual (S)tochastic (G)raph (T)raversal. 
@@ -196,7 +197,6 @@ class ProofDifferentialSimulatorTypeCSGT(ProofDifferentialSimulatorTypeSGT):
     def next_node_pr_seq(self,current_node): 
         q = super().next_node_pr_seq(current_node)
         q = [(c,self.gtc_cr.next_node(current_node,n)) for c,n in q] 
-
         return q 
 
 """

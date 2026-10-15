@@ -17,6 +17,25 @@ def graph_and_paths_case_BASE(prg):
 
     return G,node_path_solution_seq
 
+def graph_and_paths_case_BASE1(prg): 
+
+    is_dsg = False 
+    is_realtime_gen = True 
+    vertex_degree = 12 
+    edge_connectivity = 0.3 
+    verbose = False 
+
+    gg = GraphGen(is_dsg,prg,is_realtime_gen,\
+        vertex_degree,edge_connectivity,verbose)
+    gg.full_run() 
+    G = gg.d 
+    G = graph_to_one_component(G,prg) 
+
+    path = NodePath.preload([2,10,9,4,3,0],[1,1,1,1,1])
+    node_path_solution_seq = [path.invert()] 
+
+    return G,node_path_solution_seq
+
 def graph_and_paths_case_COMPLEX0(prg): 
 
     is_dsg = False 
@@ -47,6 +66,24 @@ def graph_and_paths_case_COMPLEX0(prg):
     node_path_solution_seq = [P[(start_node,28)],P[(start_node,5)],P[(start_node,15)]]
 
     return G,node_path_solution_seq
+
+def GraphTraversalContextCR_case_BASE10(): 
+    D = {0: {3: 3, 4: 3, 5: 3, 11: 3}, 1: {3: 4, 4: 4, 7: 4}, \
+        2: {4: 8, 8: 8, 10: 8, 11: 8}, 3: {0: 4, 1: 4, 4: 4, 6: 1, 9: 1, 10: 1}, \
+        4: {0: 9, 1: 9, 2: 2, 3: 9, 5: 2, 7: 2, 9: 9}, 5: {0: 4, 4: 4}, 6: {3: 3}, \
+        7: {1: 4, 4: 4, 8: 8}, 8: {2: 2, 7: 7}, 9: {3: 10, 4: 10, 10: 10}, \
+        10: {2: 2, 3: 2, 9: 2}, 11: {0: 0, 2: 2}} 
+
+    return GraphTraversalContextCR(D) 
+
+def GraphTraversalContextCR_case_BASE11(): 
+    D = {0: {3: 3, 4: 3, 5: 3, 11: 3}, 1: {3: 4, 4: 4, 7: 4}, \
+        2: {4: 8, 8: 8, 10: 8, 11: 8}, 3: {0: 4, 1: 4, 4: 4, 6: 4, 9: 4, 10: 4},\
+        4: {0: 9, 1: 9, 2: 2, 3: 9, 5: 2, 7: 2, 9: 9}, 5: {0: 4, 4: 4}, 6: {3: 3}, \
+        7: {1: 4, 4: 4, 8: 8}, 8: {2: 2, 7: 7}, 9: {3: 10, 4: 10, 10: 10}, \
+        10: {2: 2, 3: 2, 9: 2}, 11: {0: 0, 2: 2}} 
+
+    return GraphTraversalContextCR(D) 
 
 """
 py -m tests.test_proof_sim 
@@ -91,6 +128,44 @@ class ProofDifferentialSimulatorTypeXMethods(unittest.TestCase):
 
         assert q == [0,0,5.66667,7.66667,8.0,7.0,7.66667,7.66667,\
             10.0,9.33333,7.66667,8.0,8.0,5.66667,7.0]
+
+    """
+    correct answer 56/200 times 
+    """
+    def test__ProofDifferentialSimulatorTypeCSGT__next__case_1(self): 
+        prg = prg__LCG(53.21,-577.5,1521.54,9767.7)
+        G,node_path_solution_seq = graph_and_paths_case_BASE1(prg)
+        start_node = 0 
+        edge_cost_function = DEFAULT_EDGE_COST_FUNCTION_2
+        gtc_cr = GraphTraversalContextCR_case_BASE10()
+        
+        psim = ProofDifferentialSimulatorTypeCSGT(G,start_node,edge_cost_function,node_path_solution_seq,gtc_cr) 
+
+        count = defaultdict(int)
+        for _ in range(200): 
+            q = psim.exec(prg) 
+            count[q[1]] += 1 
+
+        assert count == defaultdict(int, {0: 56, 6.0: 69, 11.0: 46, 9.0: 29})
+
+    """
+    correct answer 133/200 times 
+    """
+    def test__ProofDifferentialSimulatorTypeCSGT__next__case_2(self): 
+        prg = prg__LCG(53.21,-577.5,1521.54,9767.7)
+        G,node_path_solution_seq = graph_and_paths_case_BASE1(prg)
+        start_node = 0 
+        edge_cost_function = DEFAULT_EDGE_COST_FUNCTION_2
+        gtc_cr = GraphTraversalContextCR_case_BASE11()
+        
+        psim = ProofDifferentialSimulatorTypeCSGT(G,start_node,edge_cost_function,node_path_solution_seq,gtc_cr) 
+
+        count = defaultdict(int)
+        for _ in range(200): 
+            q = psim.exec(prg) 
+            count[q[1]] += 1 
+
+        assert count == defaultdict(int, {0: 133, 9.0: 67})
 
 if __name__ == '__main__':
     unittest.main()
