@@ -204,6 +204,27 @@ class ProofDifferentialSimulatorTypeCSGT(ProofDifferentialSimulatorTypeSGT):
 
 """
 Proof Differential Simulator Type (A)uto-(C)orrected (S)tochastic (G)raph (T)raversal. 
+
+Extension of <ProofDifferentialSimulatorTypeCSGT> with an auto-correction feature. 
+Simulator constructs proof (path) by first selecting a solution P in `node_path_soln`. 
+
+
+        ** Path Traversal ** 
+
+External agent PRNG used to output decimals, and these decimals are mapped out to next 
+nodes from current nodes. When the decimal d does not correspond to the correct next node, 
+given solution P, auto-correction uses internal PRNG to attempt adjusting d to d' so that 
+d' maps to the correct next node. If the correct next node cannot be reached, typically 
+due to constraints from context of <GraphTraversalContextCR>, auto-correction defers to 
+letting d map out to the wrong node n_. Algorithm then will choose another solution P' in 
+`node_path_soln` if P' contains n_, so that P' is the new `current_path`. If P' is selected, 
+then that would be a "path correction" (see variable<current_num_path_corrections> and 
+variable<max_num_path_corrections>). There are limits to the number of path corrections that 
+auto-correction can make for every call to method<exec> (path traversal <-> proof construction). 
+
+        ** Pertinent Variables in Auto-Correction ** 
+- Probability correction: `cumulative_ac_sum`, `current_ac_sum`
+- Number of units corrected: `cumulative_ac_units`, `current_ac_units`. 
 """
 class ProofDifferentialSimulatorTypeACSGT(ProofDifferentialSimulatorTypeCSGT):  
 
@@ -226,6 +247,9 @@ class ProofDifferentialSimulatorTypeACSGT(ProofDifferentialSimulatorTypeCSGT):
         self.cumulative_ac_sum = 0.0
         self.current_ac_sum = 0.0 
 
+        self.cumulative_ac_units = 0 
+        self.current_ac_units = 0 
+
         self.current_path = None 
         self.current_index = None 
         return 
@@ -245,7 +269,6 @@ class ProofDifferentialSimulatorTypeACSGT(ProofDifferentialSimulatorTypeCSGT):
         while stat: 
             q = P[-1]
             n = self.next_node(q,ext_prg) 
-            print()
             stat = type(n) != type(None) 
 
             if stat: 
@@ -263,7 +286,7 @@ class ProofDifferentialSimulatorTypeACSGT(ProofDifferentialSimulatorTypeCSGT):
             print("next={},current={},target={}, # corrections={}".format(n,current_node,\
                 target,self.current_num_path_corrections))
             print("current target path --> ",self.current_path.p)
-            print()
+            print("\n")
 
         # case: target met 
         if n == target: 
@@ -287,7 +310,7 @@ class ProofDifferentialSimulatorTypeACSGT(ProofDifferentialSimulatorTypeCSGT):
         return n 
 
     def next_node_(self,current_node,ext_prg): 
-        assert self.current_path[self.current_index] == current_node 
+        ##assert self.current_path[self.current_index] == current_node 
 
         if self.current_index >= len(self.current_path) -1: return None 
 
@@ -301,8 +324,13 @@ class ProofDifferentialSimulatorTypeACSGT(ProofDifferentialSimulatorTypeCSGT):
         acorr = self.auto_correct_probability(pr,target_node,L) 
         pr += acorr 
 
-        self.current_ac_sum += abs(acorr) 
-        self.cumulative_ac_sum += abs(acorr) 
+        acorr_ = abs(acorr)
+        self.current_ac_sum += acorr_ 
+        self.cumulative_ac_sum += acorr_ 
+
+        if acorr_ > 0: 
+            self.current_ac_units += 1
+            self.cumulative_ac_units += 1
         return probability_to_label(L,pr)
 
     def auto_correct_probability(self,pr,target_node,pr2node_seq): 
