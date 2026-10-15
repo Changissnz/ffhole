@@ -54,6 +54,9 @@ py -m tests.test_proof_sim
 # NOTE: runtime on developer's device: approx. 180 seconds. 
 class ProofDifferentialSimulatorTypeXMethods(unittest.TestCase):
 
+    """
+    small graph: external party proof results in correct solution most of the time. 
+    """
     def test__ProofDifferentialSimulatorTypeSGT__next__case_1(self): 
         prg = prg__LCG(53.21,-577.5,1521.54,9767.7)
         G,node_path_solution_seq = graph_and_paths_case_BASE(prg) 
@@ -70,6 +73,9 @@ class ProofDifferentialSimulatorTypeXMethods(unittest.TestCase):
         assert q == [0, 0, 0, 5.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5.5, 0]
         return 
 
+    """
+    more complex graph: external party proof does not result in correct solution most of the time. 
+    """
     def test__ProofDifferentialSimulatorTypeSGT__next__case_2(self): 
         prg = prg__LCG(53.21,-577.5,1521.54,9767.7)
         G,node_path_solution_seq = graph_and_paths_case_COMPLEX0(prg) 
