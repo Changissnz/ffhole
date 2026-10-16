@@ -223,7 +223,7 @@ variable<max_num_path_corrections>). There are limits to the number of path corr
 auto-correction can make for every call to method<exec> (path traversal <-> proof construction). 
 
         ** Pertinent Variables in Auto-Correction ** 
-- Probability correction: `cumulative_ac_sum`, `current_ac_sum`
+- Probability correction: `cumulative_ac_sum`, `current_ac_sum`. 
 - Number of units corrected: `cumulative_ac_units`, `current_ac_units`. 
 """
 class ProofDifferentialSimulatorTypeACSGT(ProofDifferentialSimulatorTypeCSGT):  
