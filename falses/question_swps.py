@@ -1,5 +1,7 @@
 
 DEFAULT_QUESTION_TYPE_SWPS_NUM_PATHS_PER_NODE = 3 
+DEFAULT_QUESTION_TYPE_SWPS_MAX_NUM_PATHS_CORRECTIONS = 5 
+
 
 """
 Question Type (S)ubjective (W)ith (P)roof (S)imulation. 
@@ -51,6 +53,34 @@ class QuestionTypeSWPS:
     def update_soln(self): 
         return -1 
 
-    def proof_process(self,demonstrator_ans,observer_ans): 
-        return -1 
+    def choose_node_path_solution(self): 
+        i = modulo_in_range(int(self.prg()),node_path_soln_size_range)
 
+        x = sorted(self.G.keys())
+
+        j = int(self.prg()) % len(x) 
+
+        start_node = x.pop(j) 
+
+        q = fetch_paths_from_node_to_nodeset(self.nodepair2paths,start_node,set(x))
+        k = sorted(q.keys()) 
+        return start_node,[q[k_] for k_ in k] 
+
+    """
+    return:
+    - [0] path of proof, 
+      [1] difference score with solution paths, 
+      [2] ratio of auto-corrected edges over average solution path length 
+    """
+    def proof_process(self,demonstrator_prng,observer_prng): 
+
+        start_node,paths = self.choose_node_path_solution() 
+        P = ProofDifferentialSimulatorTypeACSGT(self.G,start_node,DEFAULT_EDGE_COST_FUNCTION_2,\
+            paths,GraphTraversalContextCR(dict()),demonstrator_prng,\
+            max_num_path_corrections=DEFAULT_QUESTION_TYPE_SWPS_MAX_NUM_PATHS_CORRECTIONS)
+
+        pf,score = P.exec(observer_prng)
+
+        autocorrect_ratio = zero_div(P.current_ac_units,P.average_path_length(),0) 
+
+        return pf,score,autocorrect_ratio

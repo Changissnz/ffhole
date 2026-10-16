@@ -71,6 +71,9 @@ class ProofDifferentialSimulatorTypeSGT:
             s += (s00 + s01 + s10 + s11)         
         return ext_path, s / len(self.node_path_soln)
 
+    def average_path_length(self): 
+        return np.mean([len(p) for p in self.node_path_soln])
+
     # NOTE: assumes edge cost function `ecf` outputs a 
     #       constant value for any edge (u,v). 
     def external_agent_path(self,ext_prg):  
