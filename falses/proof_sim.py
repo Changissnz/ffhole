@@ -214,6 +214,10 @@ class ProofDifferentialSimulatorTypeCSGT(ProofDifferentialSimulatorTypeSGT):
         q = [(c,self.gtc_cr.next_node(current_node,n)) for c,n in q] 
         return q 
 
+    def prng_update_context(self,output_space_ratio_range,prg): 
+        self.gtc_cr = GraphTraversalContextCR.generate_instance(self.G,output_space_ratio_range,prg)
+        return
+
 """
 Proof Differential Simulator Type (A)uto-(C)orrected (S)tochastic (G)raph (T)raversal. 
 

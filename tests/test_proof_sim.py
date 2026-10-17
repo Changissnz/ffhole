@@ -225,5 +225,38 @@ class ProofDifferentialSimulatorTypeXMethods(unittest.TestCase):
 
         assert len(count) == 1 and {0} == set(count.keys())
 
+        assert round(psim.cumulative_ac_sum,5) == 214.04794 
+        assert psim.cumulative_ac_units == 482 
+
+    def test__ProofDifferentialSimulatorTypeACSGT__next__case_2(self): 
+
+        prg = prg__LCG(53.21,-577.5,1521.54,9767.7)
+
+        G,node_path_solution_seq = graph_and_paths_case_COMPLEX1(prg)
+
+        start_node = 0  
+        edge_cost_function = DEFAULT_EDGE_COST_FUNCTION_2
+
+        ##### case 1: context w/ 25-30% choice 
+        gtc_cr = GraphTraversalContextCR.generate_instance(G,[0.25,0.30],prg) #[0.02,0.2],prg) 
+
+        psim = ProofDifferentialSimulatorTypeACSGT(G,start_node,edge_cost_function,node_path_solution_seq,gtc_cr,prg) 
+        count = defaultdict(int)
+        for _ in range(200): 
+            q = psim.exec(prg) 
+            count[q[1]] += 1 
+
+        assert count == defaultdict(int, {8.5: 53, 10.25: 47, 0: 89, 12.375: 11}), "got {}".format(count)
+
+        ##### case 2: context w/ 60-70% choice 
+        psim.prng_update_context([0.6,0.7],prg) 
+        count = defaultdict(int)
+        for _ in range(200): 
+            q = psim.exec(prg) 
+            count[q[1]] += 1 
+
+        assert count == defaultdict(int, {0: 189, 8.75: 3, 8.5: 3, 10.25: 5}), "got {}".format(count)
+        return 
+
 if __name__ == '__main__':
     unittest.main()
