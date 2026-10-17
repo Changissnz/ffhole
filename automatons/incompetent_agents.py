@@ -4,6 +4,8 @@ from morebs2.numerical_generator import prg_to_prg__LCG_sequence__v2
 from collections import Counter
 
 """
+Incompetent Agent Type (D)emonstration/(E)xecution + (G)raph (D)ifferential. 
+
 Agent with simulated incompetence methodology, built from 
     <InconsistentFunctionTypeCCDE> + <UncertaintySimulatorTypeGGD>. 
 Agent actions represented as boolean values. 
