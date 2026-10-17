@@ -5,24 +5,19 @@ Inconsistent Function Type (E)xpected (S)warm (A)gent (R)esponse.
 """
 class InconsistentFunctionTypeESAR: 
 
-    def __init__(self,default_ans,agent2exp_map,agent2recv_map,agent_relation_graph,agent_answer_ordering,prg):
+    def __init__(self,default_ans,agent2exp_map,agent2recv_map,agent_relation_graph,prg):
 
         assert type(agent_relation_graph) == defaultdict 
         assert set(agent2exp_map.keys()).issubset(set(agent_relation_graph.keys()))
         assert set(agent2recv_map.keys()).issubset(set(agent_relation_graph.keys()))
-
-        assert type(agent_answer_ordering) == tuple and len(agent_answer_ordering) == 2 \
-            agent_answer_ordering[0] in agent_relation_graph
         assert type(prg) in {MethodType,FunctionType}
 
         self.default_ans = default_ans 
         self.agent2exp_map = agent2exp_map
         self.agent2recv_map = agent2recv_map
         self.arg = agent_relation_graph
-        self.aao = agent_answer_ordering
         self.prg = prg 
 
-        self.gtrav = None 
         self.preproc() 
         return 
 
