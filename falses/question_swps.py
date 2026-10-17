@@ -6,7 +6,8 @@ DEFAULT_QUESTION_TYPE_SWPS_MAX_NUM_PATHS_CORRECTIONS = 5
 """
 Question Type (S)ubjective (W)ith (P)roof (S)imulation. 
 
-Operates 
+Facilitates proof process between a demonstrator and an observer. 
+Output determines whether demonstrator or observer answer is accepted. 
 """
 class QuestionTypeSWPS: 
 
@@ -63,7 +64,8 @@ class QuestionTypeSWPS:
         start_node = x.pop(j) 
 
         q = fetch_paths_from_node_to_nodeset(self.nodepair2paths,start_node,set(x))
-        k = sorted(q.keys()) 
+        k = prg_seqsort(sorted(q.keys()),self.prg)[:i] 
+
         return start_node,[q[k_] for k_ in k] 
 
     """

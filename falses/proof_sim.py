@@ -6,6 +6,30 @@ from types import MethodType,FunctionType
 from math import ceil 
 
 """
+Objective Type (U)ndirected (S)imple (G)raph, (M)ultiple (P)aths. 
+"""
+class ObjectiveTypeUSGMP: 
+
+    def __init__(self,G,start_node,node_path_solution_seq): 
+        assert type(G) == defaultdict 
+        assert start_node in G 
+        assert type(node_path_solution_seq) == list and len(node_path_solution_seq) > 0 
+        for p in node_path_solution_seq: 
+            assert type(p) == NodePath 
+            assert p.head() == start_node 
+
+        self.G = G 
+        self.start_node = start_node 
+        self.node_path_soln = node_path_solution_seq
+
+        lengths = [len(p) for p in self.node_path_soln]
+        self.minmax_path_lengths = (min(lengths),max(lengths))
+
+    def average_path_length(self): 
+        return np.mean([len(p) for p in self.node_path_soln])
+
+
+"""
 Proof Differential Simulator Type (S)tochastic (G)raph (T)raversal. 
 
 Algorithm models how agents can construct different proofs (paths), 
@@ -32,25 +56,13 @@ If P_ext is found in `node_path_soln`, external agent has constructed the same
 proof as the host. Otherwise, the (node,edge) differences between P_ext and 
 `node_path_soln` are averaged out to produce a proof differential. 
 """
-class ProofDifferentialSimulatorTypeSGT: 
+class ProofDifferentialSimulatorTypeSGT(ObjectiveTypeUSGMP): 
 
     def __init__(self,G,start_node,edge_cost_function,node_path_solution_seq): 
-        assert type(G) == defaultdict 
-        assert start_node in G 
+        super().__init__(G,start_node,node_path_solution_seq)
+
         assert type(edge_cost_function) in {MethodType,FunctionType}
-        assert type(node_path_solution_seq) == list and len(node_path_solution_seq) > 0 
-        for p in node_path_solution_seq: 
-            assert type(p) == NodePath 
-            assert p.head() == start_node 
-
-
-        self.G = G 
-        self.start_node = start_node 
         self.ecf = edge_cost_function
-        self.node_path_soln = node_path_solution_seq
-
-        lengths = [len(p) for p in self.node_path_soln]
-        self.minmax_path_lengths = (min(lengths),max(lengths))
 
     """
     main method 
@@ -70,9 +82,6 @@ class ProofDifferentialSimulatorTypeSGT:
             s10,s11 = G1.sub_ve_score(G0) 
             s += (s00 + s01 + s10 + s11)         
         return ext_path, s / len(self.node_path_soln)
-
-    def average_path_length(self): 
-        return np.mean([len(p) for p in self.node_path_soln])
 
     # NOTE: assumes edge cost function `ecf` outputs a 
     #       constant value for any edge (u,v). 
