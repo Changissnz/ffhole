@@ -67,21 +67,61 @@ def graph_and_paths_case_COMPLEX0(prg):
 
     return G,node_path_solution_seq
 
+def graph_and_paths_case_COMPLEX1(prg):
+
+    is_dsg = False 
+    prg = prg__LCG(53.21,-577.5,1521.54,9767.7)
+    is_realtime_gen = True 
+    vertex_degree = 22 
+    edge_connectivity = 0.1 
+    verbose = False 
+
+    gg = GraphGen(is_dsg,prg,is_realtime_gen,\
+        vertex_degree,edge_connectivity,verbose)
+    gg.full_run() 
+    G = gg.d 
+
+    G = graph_to_one_component(G,prg) 
+
+    B = BFSCache(0,G)
+    B.exec() 
+    B.store_minpaths(num_paths=1000)
+
+    node_path_solution_seq = [x.invert() for x in B.min_paths[2]]
+
+    return G,node_path_solution_seq
+
+
 def GraphTraversalContextCR_case_BASE10(): 
-    D = {0: {3: 3, 4: 3, 5: 3, 11: 3}, 1: {3: 4, 4: 4, 7: 4}, \
-        2: {4: 8, 8: 8, 10: 8, 11: 8}, 3: {0: 4, 1: 4, 4: 4, 6: 1, 9: 1, 10: 1}, \
-        4: {0: 9, 1: 9, 2: 2, 3: 9, 5: 2, 7: 2, 9: 9}, 5: {0: 4, 4: 4}, 6: {3: 3}, \
-        7: {1: 4, 4: 4, 8: 8}, 8: {2: 2, 7: 7}, 9: {3: 10, 4: 10, 10: 10}, \
-        10: {2: 2, 3: 2, 9: 2}, 11: {0: 0, 2: 2}} 
+    D = {0: {3: 3, 4: 3, 5: 3, 11: 3},\
+        1: {3: 4, 4: 4, 7: 4},\
+        2: {4: 8, 8: 8, 10: 8, 11: 8},\
+        3: {0: 4, 1: 4, 4: 4, 6: 1, 9: 1, 10: 1},\
+        4: {0: 9, 1: 9, 2: 2, 3: 9, 5: 2, 7: 2, 9: 9},\
+        5: {0: 4, 4: 4},\
+        6: {3: 3},\
+        7: {1: 4, 4: 4, 8: 8},\
+        8: {2: 2, 7: 7},\
+        9: {3: 10, 4: 10, 10: 10}, \
+        10: {2: 2, 3: 2, 9: 2},\
+        11: {0: 0, 2: 2}} 
 
     return GraphTraversalContextCR(D) 
 
+# NOTE: identical to BASE10, except for [3] 
 def GraphTraversalContextCR_case_BASE11(): 
-    D = {0: {3: 3, 4: 3, 5: 3, 11: 3}, 1: {3: 4, 4: 4, 7: 4}, \
-        2: {4: 8, 8: 8, 10: 8, 11: 8}, 3: {0: 4, 1: 4, 4: 4, 6: 4, 9: 4, 10: 4},\
-        4: {0: 9, 1: 9, 2: 2, 3: 9, 5: 2, 7: 2, 9: 9}, 5: {0: 4, 4: 4}, 6: {3: 3}, \
-        7: {1: 4, 4: 4, 8: 8}, 8: {2: 2, 7: 7}, 9: {3: 10, 4: 10, 10: 10}, \
-        10: {2: 2, 3: 2, 9: 2}, 11: {0: 0, 2: 2}} 
+    D = {0: {3: 3, 4: 3, 5: 3, 11: 3},\
+        1: {3: 4, 4: 4, 7: 4},\
+        2: {4: 8, 8: 8, 10: 8, 11: 8},\
+        3: {0: 4, 1: 4, 4: 4, 6: 4, 9: 4, 10: 4},\
+        4: {0: 9, 1: 9, 2: 2, 3: 9, 5: 2, 7: 2, 9: 9},\
+        5: {0: 4, 4: 4},\
+        6: {3: 3},\
+        7: {1: 4, 4: 4, 8: 8},\
+        8: {2: 2, 7: 7},\
+        9: {3: 10, 4: 10, 10: 10},\
+        10: {2: 2, 3: 2, 9: 2},\
+        11: {0: 0, 2: 2}} 
 
     return GraphTraversalContextCR(D) 
 
@@ -166,6 +206,24 @@ class ProofDifferentialSimulatorTypeXMethods(unittest.TestCase):
             count[q[1]] += 1 
 
         assert count == defaultdict(int, {0: 133, 9.0: 67})
+
+    def test__ProofDifferentialSimulatorTypeACSGT__next__case_1(self): 
+        
+        prg = prg__LCG(53.21,-577.5,1521.54,9767.7)
+        G,node_path_solution_seq = graph_and_paths_case_COMPLEX1(prg)
+        gtc_cr = GraphTraversalContextCR(dict())
+
+        start_node = 0  
+        edge_cost_function = DEFAULT_EDGE_COST_FUNCTION_2
+
+        psim = ProofDifferentialSimulatorTypeACSGT(G,start_node,edge_cost_function,node_path_solution_seq,gtc_cr,prg) 
+
+        count = defaultdict(int)
+        for _ in range(200): 
+            q = psim.exec(prg) 
+            count[q[1]] += 1 
+
+        assert len(count) == 1 and {0} == set(count.keys())
 
 if __name__ == '__main__':
     unittest.main()

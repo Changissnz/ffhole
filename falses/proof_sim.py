@@ -122,7 +122,7 @@ class ProofDifferentialSimulatorTypeSGT(ObjectiveTypeUSGMP):
             print("? strange case ? neighbor edge weights sum to 0.0. No next node.")
             return None 
 
-        return [(c/s,n) for (n,c) in L] 
+        return [(round(c/s,10),n) for (n,c) in L] 
 
     @staticmethod
     def generate_instance(G,start_node,num_soln): 
@@ -286,6 +286,10 @@ class ProofDifferentialSimulatorTypeACSGT(ProofDifferentialSimulatorTypeCSGT):
             if stat: 
                 P.append(n) 
                 E.append(self.ecf(q,n))  
+
+            if self.verbose: 
+                print("current path --> ",P) 
+                print("\n")
         return NodePath.preload(P,E) 
 
     def next_node(self,current_node,ext_prg):
@@ -297,8 +301,7 @@ class ProofDifferentialSimulatorTypeACSGT(ProofDifferentialSimulatorTypeCSGT):
         if self.verbose: 
             print("next={},current={},target={}, # corrections={}".format(n,current_node,\
                 target,self.current_num_path_corrections))
-            print("current target path --> ",self.current_path.p)
-            print("\n")
+            print("current reference path --> ",self.current_path.p)
 
         # case: target met 
         if n == target: 
@@ -331,10 +334,13 @@ class ProofDifferentialSimulatorTypeACSGT(ProofDifferentialSimulatorTypeCSGT):
 
         target_node = self.current_path[self.current_index + 1] 
 
-        pr = prg_decimal(ext_prg,[0.,1.]) 
+        pr = round(prg_decimal(ext_prg,[0.,1.]),10) 
+        acorr = self.auto_correct_probability(pr,target_node,L)
+        acorr_ = round(abs(acorr),10) 
+        if acorr < 0: acorr = acorr_ * -1 
+        else: acorr = acorr_ 
         
-        acorr = self.auto_correct_probability(pr,target_node,L) 
-        pr += acorr 
+        pr = round(pr + acorr,10) 
 
         acorr_ = abs(acorr)
         self.current_ac_sum += acorr_ 
@@ -360,19 +366,14 @@ class ProofDifferentialSimulatorTypeACSGT(ProofDifferentialSimulatorTypeCSGT):
         if len(indices) == 0: 
             return 0.0 
 
+        # case: get the minimum absolute difference to add to pr to 
+        #       correspond to `target_node`. 
         pr_seq = [p[0] for p in pr2node_seq] 
         X = np.cumsum(pr_seq) 
-        
-        q = 0 
-        pr_seq2 = [] 
-        for i,x in enumerate(pr2node_seq): 
-            pr_seq2.append((q,X[i]))
-            q = X[i]
 
-        S = np.array([pr_seq2[i] for i in indices]).flatten() 
-        d = S - pr 
+        X_ = np.array([X[i] for i in indices]) 
+        d = X_ - pr 
         i2 = np.argmin(np.abs(d)) 
-
         return d[i2]
 
     """
