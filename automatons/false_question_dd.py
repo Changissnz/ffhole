@@ -28,7 +28,11 @@ class FalseQuestionTypeDD:
     def exec_action(self,q_agent,a_agent): 
 
         # pass answer 
-        ans = a_agent.answer(q_agent.idn)  
+        if a_agent == self.fs: 
+            ans = a_agent.answer(q_agent.idn)  
+        else: 
+            ans = a_agent.answer() 
+
         q_agent.recv_answer(ans) 
 
         D = q_agent.decision()
@@ -36,7 +40,7 @@ class FalseQuestionTypeDD:
         # 
         if D == "proof":
             self.exec_proof(q_agent,a_agent)
-        return -1  
+        return 
 
     def exec_proof(self,q_agent,a_agent): 
         prg0 = a_agent.prg 

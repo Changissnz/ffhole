@@ -19,26 +19,24 @@ class InconsistentFunctionTypeESAR:
         self.prg = prg 
         return 
 
-    def answer_agent(self,a_idn,prefer_consistent_answer:bool=False,answer_default:bool=False): 
-        if answer_default: 
-            assert type(self.default_ans) != type(None)
+    def answer(self,a_idn): 
+        if a_idn not in self.agent2exp_map: 
             return self.default_ans 
+        elif type(self.agent2exp_map[a_idn]) == type(None): 
+            return self.default_ans 
+        
+        d0 = prg_decimal(self.prg(),[0.,1.]) 
+        d1 = prg_decimal(self.prg(),[0.,1.]) 
 
-        if prefer_consistent_answer: 
-            q = self.consistent_answer(a_idn) 
-            if type(q) != type(None): return q 
-
-        # if answer exists in `agent2exp_map` 
-        if a_idn in self.agent2exp_map: 
+        # choose expected 
+        if d0 >= d1: 
             return self.agent2exp_map[a_idn] 
-
-        # try inducing answer from closest neighbor that has an expected answer 
-        return self.induce_answer(a_idn)
+        return self.consistent_answer(a_idn) 
 
     def consistent_answer(self,a_idn): 
         if a_idn in self.agent2recv_map: 
             return self.agent2recv_map[a_idn]
-        return None 
+        return self.default_ans  
 
     def update_answer(self,a_idn,ans,answer_type): 
         assert answer_type in {"exp","sent"} 

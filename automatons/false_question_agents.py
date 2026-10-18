@@ -60,6 +60,9 @@ class FQSwarmAgent(FQAgent):
             self.dec0 = "pass" 
         return 
 
+    def answer(self): 
+        return self.current_answer 
+
     def send_answer(self,to_neighbors:bool): 
         return -1 
 
@@ -122,12 +125,8 @@ class FQSubjectTypeDD(FQAgent):
         self.incon_func = incon_func 
         return 
 
-    def answer(self,s_agent:FQSwarmAgent):
-        assert type(s_agent) == FQSwarmAgent
-
-        return self.incon_func.answer
-
-        return 
+    def answer(self,a_idn):
+        return self.incon_func.answer(a_idn)
 
     def update_answer(self,a_idn,ans,answer_type): 
         self.incon_func.update_answer(a_idn,ans,answer_type) 
@@ -168,7 +167,5 @@ class FQSubjectTypeDD(FQAgent):
 
         ifunc = InconsistentFunctionTypeESAR(default_ans,agent2exp_map,agent2recv_map,\
             agent_relation_graph,prg)
-
-        
-
-        return -1 
+            
+        return
