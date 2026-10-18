@@ -17,16 +17,6 @@ class InconsistentFunctionTypeESAR:
         self.agent2recv_map = agent2recv_map
         self.arg = agent_relation_graph
         self.prg = prg 
-
-        self.preproc() 
-        return 
-
-    def preproc(self): 
-
-        self.paths,components = BDFSCache.BFS_full(self.G,nodeset=None,return_type="paths",\
-            prg=self.prg,max_search_radius=float('inf'),edge_cost_function=DEFAULT_EDGE_COST_FUNCTION_2,\
-            verbose=False)
-        assert len(components) == 1 
         return 
 
     def answer_agent(self,a_idn,prefer_consistent_answer:bool=False,answer_default:bool=False): 
@@ -50,19 +40,8 @@ class InconsistentFunctionTypeESAR:
             return self.agent2recv_map[a_idn]
         return None 
 
-    def induce_answer(self,a_idn): 
-        nodes = sorted((set(self.G.keys()) - {a_idn}).intersection(\
-            set(self.agent2exp_map.keys()))) 
-
-        node_distances = [] 
-        for n in nodes: 
-            q = self.paths[(a_idn,n)].cost() 
-            node_distances.append((n,q)) 
-
-        if len(node_distances) == 0: return None 
-
-        ref_node = prg_seqsort_ties(node_distances,self.prg,lambda x:x[1])[0][0] 
-        return self.agent2exp_map[ref_node]
-
-    def update_answer(self,a_idn,answer_type): 
-        return -1 
+    def update_answer(self,a_idn,ans,answer_type): 
+        assert answer_type in {"exp","sent"} 
+        Q = self.agent2exp_map if answer_type == "exp" else self.agent2recv_map
+        Q[a_idn] = ans 
+        return

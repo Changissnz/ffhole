@@ -1,30 +1,85 @@
+
+class FQAgent: 
+
+    def __init__(self): 
+        self.error_term = 0.0 
+        self.num_iterations = 0 
+
+    def update_error_term(self,autocorrect_ratio):
+        assert 0. <= autocorrect_ratio <= 1.
+
+        q = (self.error_term * self.num_iterations) + autocorrect_ratio
+        self.num_iterations += 1 
+        self.error_term = q / self.num_iterations 
+        return 
+
 """
 unit agent for False Question Agent Swarm. 
 """
-class FQSwarmAgent: 
+class FQSwarmAgent(FQAgent): 
 
     def __init__(self,idn,initial_answer,neighbor_agents:list): 
+        super().__init__()
+
         self.idn = idn 
         self.initial_answer = initial_answer
         self.current_answer = initial_answer
+
+        # stores answer from any sender 
         self.received_answer = None 
+
+        # stores answer only from <FQSubjectAgent> 
+        self.received_answer_from_subject = None 
 
         self.neighbor_agents = None 
         self.update_neighbor_agents(neighbor_agents) 
 
-        self.error_term = 0.0 
-        self.num_iterations = 0 
+        self.inconsistent_subject_answers = 0 
+
+        self.dec0 = None 
         return 
 
     def update_neighbor_agents(self,agents): 
         for x in agents: assert type(x) == FQSwarmAgent
         self.neighbor_agents = agents 
 
-    def recv_answer(self,sender_idn,sender_ans): 
-        return -1 
+    def recv_answer(self,sender_ans,is_sender_subject:bool): 
+
+        self.received_answer = sender_ans 
+
+        if is_sender_subject: 
+            if self.received_answer != self.received_answer_from_subject: 
+                self.inconsistent_subject_answers += 1 
+        
+        # demand proof 
+        if self.error_term < 0.5: 
+            self.dec0 = "proof"
+        # accept answer and pass to next 
+        else: 
+            self.current_answer = sender_ans 
+            self.dec0 = "pass" 
+        return 
 
     def send_answer(self,to_neighbors:bool): 
         return -1 
+
+    """
+    demand proof of answer or pass answer 
+    """
+    def decision_0(self): 
+        return self.dec0 
+
+    """
+    accept or reject `received_answer`. 
+    """
+    def decision_p(self,pf,pf_score): 
+
+        # accept new answer: 
+        if pf_score < sum(pf.ve_score()) / 2.0: 
+            self.current_answer = self.received_answer
+            return "accept" 
+
+        return "reject"
 
 class FQAgentSwarm: 
 
@@ -38,6 +93,10 @@ class FQAgentSwarm:
 
         self.queue = deque() 
         return 
+
+    #def preproc(self): 
+    #    for k,v in self.swarm_agent_map.items(): 
+    #        v.update_neighbor_agents()
 
     def idn_to_agent(self,idn): 
         return self.swarm_agent_map[idn] 
@@ -54,15 +113,24 @@ class FQAgentSwarm:
 
 Subject agent is to achieve an 
 """
-class FQSubjectTypeDD: 
+class FQSubjectTypeDD(FQAgent): 
 
     def __init__(self,incon_func):  
         assert type(incon_func) == InconsistentFunctionTypeESAR
-        self.incon_func = incon_func 
-        return -1 
+        super().__init__()
 
-    def answer_for_swarm_agent(self,s_agent:FQSwarmAgent):
-        return -1 
+        self.incon_func = incon_func 
+        return 
+
+    def answer(self,s_agent:FQSwarmAgent):
+        assert type(s_agent) == FQSwarmAgent
+
+        return self.incon_func.answer
+
+        return 
+
+    def update_answer(self,a_idn,ans,answer_type): 
+        self.incon_func.update_answer(a_idn,ans,answer_type) 
 
     @staticmethod 
     def generate_instance(agent_swarm:FQAgentSwarm,default_ans,possible_answer_set,missing_answer_ratio,\

@@ -71,7 +71,7 @@ class QuestionTypeSWPS:
     """
     return:
     - [0] path of proof, 
-      [1] difference score with solution paths, 
+      [1] average difference score with solution paths, 
       [2] ratio of auto-corrected edges over average solution path length 
     """
     def proof_process(self,demonstrator_prng,observer_prng): 
@@ -83,6 +83,6 @@ class QuestionTypeSWPS:
 
         pf,score = P.exec(observer_prng)
 
-        autocorrect_ratio = zero_div(P.current_ac_units,P.average_path_length(),0) 
+        autocorrect_ratio = zero_div(P.current_ac_units,pf.edge_count(),0)  
 
         return pf,score,autocorrect_ratio
