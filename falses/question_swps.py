@@ -1,3 +1,9 @@
+from xFS_bots.graph_models.shortest_paths import * 
+from xFS_bots.graph_models.path_induction import * 
+
+from .proof_sim import * 
+from morebs2.matrix_methods import is_valid_range
+from morebs2.measures import zero_div 
 
 DEFAULT_QUESTION_TYPE_SWPS_NUM_PATHS_PER_NODE = 3 
 DEFAULT_QUESTION_TYPE_SWPS_MAX_NUM_PATHS_CORRECTIONS = 5 
@@ -28,34 +34,43 @@ class QuestionTypeSWPS:
 
     def preproc(self,start_node_for_paths): 
         if type(start_node_for_paths) == type(None): 
-            q = sorted(G.keys()) 
+            q = sorted(self.G.keys()) 
             i = int(self.prg()) % len(q) 
             start_node_for_paths = q[i] 
         else: 
             assert start_node_for_paths in self.G 
 
         is_bfs = bool(int(self.prg()) % 2) 
-        B = BDFSCache(start_node_for_paths,G,is_bfs=is_bfs,prg=self.prg,\
+        B = BDFSCache(start_node_for_paths,self.G,is_bfs=is_bfs,prg=self.prg,\
             edge_cost_function=lambda u,v:1,\
             num_paths_per_node=DEFAULT_QUESTION_TYPE_SWPS_NUM_PATHS_PER_NODE,\
             max_search_radius=float('inf'),verbose=False)
         B.exec()
+        print("after BFS") 
 
-        P = PathInduction(start_node_for_paths,B.min_paths,prg,num_segment_range=[1,5]) 
-        q = P.induce_paths_from_other_references(G)
+        P = PathInduction(start_node_for_paths,B.min_paths,self.prg,num_segment_range=[1,5]) 
+        q = P.induce_paths_from_other_references(self.G)
+        print("after path induction")
+
+        print("QQQ")
+        print(q) 
 
         self.nodepair2paths = defaultdict(list) 
-        for k,v in B.min_paths: self.nodepair2paths[(start_node_for_paths,k)] = v 
+        for k,v in B.min_paths.items(): self.nodepair2paths[(start_node_for_paths,k)] = v 
+        print("BB")
+        print(self.nodepair2paths)
 
+        print("STARTING ", len(q))
         for k,v in q.items(): 
-            self.nodepair2paths[k].append(v) 
+            print("- KK: ",k)
+            self.nodepair2paths[k].append(v)  
         return 
 
     def update_soln(self): 
         return -1 
 
     def choose_node_path_solution(self): 
-        i = modulo_in_range(int(self.prg()),node_path_soln_size_range)
+        i = modulo_in_range(int(self.prg()),self.node_path_soln_size_range)
 
         x = sorted(self.G.keys())
 
@@ -63,10 +78,13 @@ class QuestionTypeSWPS:
 
         start_node = x.pop(j) 
 
+        print("FETCHING")
         q = fetch_paths_from_node_to_nodeset(self.nodepair2paths,start_node,set(x))
         k = prg_seqsort(sorted(q.keys()),self.prg)[:i] 
+        paths = [] 
+        for k_ in k: paths.extend(q[k_]) 
 
-        return start_node,[q[k_] for k_ in k] 
+        return start_node,paths  
 
     """
     return:
@@ -77,12 +95,14 @@ class QuestionTypeSWPS:
     def proof_process(self,demonstrator_prng,observer_prng): 
 
         start_node,paths = self.choose_node_path_solution() 
+        print("PATHS")
+        print(paths)
         P = ProofDifferentialSimulatorTypeACSGT(self.G,start_node,DEFAULT_EDGE_COST_FUNCTION_2,\
             paths,GraphTraversalContextCR(dict()),demonstrator_prng,\
             max_num_path_corrections=DEFAULT_QUESTION_TYPE_SWPS_MAX_NUM_PATHS_CORRECTIONS)
 
         pf,score = P.exec(observer_prng)
 
-        autocorrect_ratio = zero_div(P.current_ac_units,pf.edge_count(),0)  
+        autocorrect_ratio = zero_div(P.current_ac_units,len(pf) - 1,0)  
 
         return pf,score,autocorrect_ratio

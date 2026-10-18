@@ -18,12 +18,16 @@ unit agent for False Question Agent Swarm.
 """
 class FQSwarmAgent(FQAgent): 
 
-    def __init__(self,idn,initial_answer,neighbor_agents:list): 
+    def __init__(self,idn,initial_answer,possible_answer_set:set,prg):  
         super().__init__()
+
+        assert initial_answer in possible_answer_set
+        assert type(possible_answer_set) == set
 
         self.idn = idn 
         self.initial_answer = initial_answer
         self.current_answer = initial_answer
+        self.answer_set = possible_answer_set
 
         # stores answer from any sender 
         self.received_answer = None 
@@ -32,16 +36,10 @@ class FQSwarmAgent(FQAgent):
         self.received_answer_from_subject = None 
 
         self.neighbor_agents = None 
-        self.update_neighbor_agents(neighbor_agents) 
-
         self.inconsistent_subject_answers = 0 
 
         self.dec0 = None 
         return 
-
-    def update_neighbor_agents(self,agents): 
-        for x in agents: assert type(x) == FQSwarmAgent
-        self.neighbor_agents = agents 
 
     def recv_answer(self,sender_ans,is_sender_subject:bool): 
 
@@ -97,10 +95,6 @@ class FQAgentSwarm:
         self.queue = deque() 
         return 
 
-    #def preproc(self): 
-    #    for k,v in self.swarm_agent_map.items(): 
-    #        v.update_neighbor_agents()
-
     def idn_to_agent(self,idn): 
         return self.swarm_agent_map[idn] 
 
@@ -110,6 +104,31 @@ class FQAgentSwarm:
     def agent_received_answers(self): 
         return {k:v.received_answer for k,v in self.swarm_agent_map.items()} 
 
+    @staticmethod
+    def generate_instance(num_agents,possible_answer_set,max_questions_per_round,prg,\
+        agent_prg_lcg_degree_range,edge_connectivity=[0.1,0.3]):
+
+        assert 1 < num_agents < 51, "max of 50 agents!" 
+        answers = prg_choose_n(sorted(possible_answer_set),num_agents,\
+            prg,is_unique_picker=False)
+
+        prng_seq = [] 
+        for _ in range(num_agents): 
+            degree = modulo_in_range(int(prg()),agent_prg_lcg_degree_range) 
+            prg2 = prg_to_LCG_stack(degree,[add,sub],prg) 
+            prng_seq.append(prg2) 
+        
+        swarm_agent_map = dict() 
+        for i,(a,p) in enumerate(zip(answers,prng_seq)): 
+            A = FQSwarmAgent(i,a,deepcopy(possible_answer_set),p) 
+            swarm_agent_map[i] = A 
+        
+        gg = GraphGen(is_dsg=False,prg=prg,is_realtime_gen=bool(int(prg()) % 2),\
+            vertex_degree=num_agents,edge_connectivity=edge_connectivity) 
+        gg.full_run() 
+        swarm_graph = graph_to_one_component(gg.d,prg) 
+
+        return FQAgentSwarm(swarm_agent_map,swarm_graph,max_questions_per_round)
 
 """
 (F)alse (Q)uestion Subject, Type (D)elay and (D)ivert. 
@@ -123,6 +142,7 @@ class FQSubjectTypeDD(FQAgent):
         super().__init__()
 
         self.incon_func = incon_func 
+        self.prg = self.incon_func.prg 
         return 
 
     def answer(self,a_idn):
@@ -167,5 +187,5 @@ class FQSubjectTypeDD(FQAgent):
 
         ifunc = InconsistentFunctionTypeESAR(default_ans,agent2exp_map,agent2recv_map,\
             agent_relation_graph,prg)
-            
-        return
+
+        return FQSubjectTypeDD(ifunc) 
