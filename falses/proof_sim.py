@@ -28,6 +28,8 @@ class ObjectiveTypeUSGMP:
     def average_path_length(self): 
         return np.mean([len(p) for p in self.node_path_soln])
 
+    def head(self): 
+        return self.node_path_soln[0].head() 
 
 """
 Proof Differential Simulator Type (S)tochastic (G)raph (T)raversal. 

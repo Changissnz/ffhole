@@ -7,7 +7,7 @@ from morebs2.measures import zero_div
 
 DEFAULT_QUESTION_TYPE_SWPS_NUM_PATHS_PER_NODE = 3 
 DEFAULT_QUESTION_TYPE_SWPS_MAX_NUM_PATHS_CORRECTIONS = 5 
-
+DEFAULT_QUESTION_PROOF_SIMULATION_OUTPUT_SPACE_RATIO_RANGE = [0.2,0.75] 
 
 """
 Question Type (S)ubjective (W)ith (P)roof (S)imulation. 
@@ -89,9 +89,14 @@ class QuestionTypeSWPS:
     def proof_process(self,demonstrator_prng,observer_prng): 
 
         start_node,paths = self.choose_node_path_solution() 
+
+        context = GraphTraversalContextCR.generate_instance(self.G,\
+            DEFAULT_QUESTION_PROOF_SIMULATION_OUTPUT_SPACE_RATIO_RANGE,self.prg)
+
         P = ProofDifferentialSimulatorTypeACSGT(self.G,start_node,DEFAULT_EDGE_COST_FUNCTION_2,\
-            paths,GraphTraversalContextCR(dict()),demonstrator_prng,\
-            max_num_path_corrections=DEFAULT_QUESTION_TYPE_SWPS_MAX_NUM_PATHS_CORRECTIONS)
+            paths,context,demonstrator_prng,\
+            max_num_path_corrections=DEFAULT_QUESTION_TYPE_SWPS_MAX_NUM_PATHS_CORRECTIONS,\
+            verbose=False)
 
         pf,score = P.exec(observer_prng)
 

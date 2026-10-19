@@ -100,9 +100,11 @@ class FalseQuestionTypeDD:
         prg1 = q_agent.prg   
         pf,score,autocorrect_ratio = self.Q.proof_process(prg0,prg1)
 
+
         a_agent.update_error_term(autocorrect_ratio) 
         
         D2 = q_agent.decision_p(pf,score) 
+        if self.verbose: print("-- proof decision: {}, score: {}   {}".format(D2,score,autocorrect_ratio))
 
         # case: subject is answering agent
         if a_agent == self.fs:
