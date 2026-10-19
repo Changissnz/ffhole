@@ -1,6 +1,6 @@
 from falses.question_swps import * 
 from falses.incon_esar import * 
-from morebs2.numerical_generator import prg_to_LCG_stack
+from morebs2.numerical_generator import prg_to_LCG_stack,merge_two_prgs
 from xFS_bots.graph_models.graph_gen import * 
 from xFS_bots.graph_models.community import graph_component_size
 
@@ -28,6 +28,7 @@ class FQSwarmAgent(FQAgent):
 
         assert initial_answer in possible_answer_set
         assert type(possible_answer_set) == set
+        assert idn != "subject" 
 
         self.idn = idn 
         self.initial_answer = initial_answer
@@ -67,9 +68,6 @@ class FQSwarmAgent(FQAgent):
     def answer(self): 
         return self.current_answer 
 
-    def send_answer(self,to_neighbors:bool): 
-        return -1 
-
     """
     demand proof of answer or pass answer 
     """
@@ -90,16 +88,46 @@ class FQSwarmAgent(FQAgent):
 
 class FQAgentSwarm: 
 
-    def __init__(self,swarm_agent_map:dict,swarm_graph:defaultdict,max_questions_per_round):  
+    def __init__(self,swarm_agent_map:dict,swarm_graph:defaultdict,max_agent_actions_per_round):  
         assert type(swarm_agent_map) == dict and type(swarm_graph) == defaultdict 
         assert set(swarm_agent_map.keys()) == set(swarm_graph.keys())
         assert graph_component_size(swarm_graph) == 1 
 
         self.swarm_agent_map = swarm_agent_map 
         self.swarm_graph = swarm_graph
+        self.max_agent_actions_per_round = max_agent_actions_per_round
 
-        self.queue = deque() 
+        self.preproc() 
         return 
+
+    def preproc(self): 
+        idns = sorted(self.swarm_agent_map) 
+        self.collective_prg = self.swarm_agent_map[idns[0]].prg 
+
+        operators = [add,sub] 
+        for i in range(1,len(idns)): 
+            prg2 = self.swarm_agent_map[idns[i]].prg 
+            operator = operators[(i - 1) % 2] 
+            self.collective_prg = merge_two_prgs(self.collective_prg,prg2,operator) 
+
+        self.agent_action_ctr_map = defaultdict(int) 
+        return 
+
+    def error_terms(self):
+        return {k:v.error_term for k,v in self.swarm_agent_map.items()}
+
+    def active_neighbor_agents(self,a_idn):
+        N = self.neighbors_of_agent(a_idn) 
+        return {n for n in N if self.agent_action_ctr_map[n] < self.max_agent_actions_per_round}  
+
+    def neighbors_of_agent(self,a_idn): 
+        assert a_idn in self.swarm_graph 
+        return self.swarm_graph[a_idn] 
+
+    def first_q_agent(self): 
+        idns = sorted(self.swarm_agent_map) 
+        i = int(self.collective_prg()) % len(idns) 
+        return self.swarm_agent_map[i] 
 
     def idn_to_agent(self,idn): 
         return self.swarm_agent_map[idn] 
@@ -110,8 +138,11 @@ class FQAgentSwarm:
     def agent_received_answers(self): 
         return {k:v.received_answer for k,v in self.swarm_agent_map.items()} 
 
+    def update_action_ctr(self,a_idn): 
+        self.agent_action_ctr_map[a_idn] += 1 
+
     @staticmethod
-    def generate_instance(num_agents,possible_answer_set,max_questions_per_round,prg,\
+    def generate_instance(num_agents,possible_answer_set,max_agent_actions_per_round,prg,\
         agent_prg_lcg_degree_range,edge_connectivity_range=[0.1,0.3]):
 
         assert 1 < num_agents < 51, "max of 50 agents!" 
@@ -135,7 +166,7 @@ class FQAgentSwarm:
         gg.full_run() 
         swarm_graph = graph_to_one_component(gg.d,prg) 
 
-        return FQAgentSwarm(swarm_agent_map,swarm_graph,max_questions_per_round)
+        return FQAgentSwarm(swarm_agent_map,swarm_graph,max_agent_actions_per_round)
 
 """
 (F)alse (Q)uestion Subject, Type (D)elay and (D)ivert. 

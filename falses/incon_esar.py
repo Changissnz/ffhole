@@ -25,8 +25,8 @@ class InconsistentFunctionTypeESAR:
         elif type(self.agent2exp_map[a_idn]) == type(None): 
             return self.default_ans 
         
-        d0 = prg_decimal(self.prg(),[0.,1.]) 
-        d1 = prg_decimal(self.prg(),[0.,1.]) 
+        d0 = prg_decimal(self.prg,[0.,1.]) 
+        d1 = prg_decimal(self.prg,[0.,1.]) 
 
         # choose expected 
         if d0 >= d1: 
