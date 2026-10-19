@@ -17,6 +17,9 @@ class InconsistentFunctionTypeESAR:
         self.agent2recv_map = agent2recv_map
         self.arg = agent_relation_graph
         self.prg = prg 
+
+        # agent idn -> number of times expected answer changes 
+        self.inconsistency_count = defaultdict(int)
         return 
 
     def answer(self,a_idn): 
@@ -41,5 +44,9 @@ class InconsistentFunctionTypeESAR:
     def update_answer(self,a_idn,ans,answer_type): 
         assert answer_type in {"exp","sent"} 
         Q = self.agent2exp_map if answer_type == "exp" else self.agent2recv_map
+
+        if answer_type == "exp": 
+            if Q[a_idn] != ans: self.inconsistency_count[a_idn] += 1 
+
         Q[a_idn] = ans 
         return

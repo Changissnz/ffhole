@@ -44,6 +44,7 @@ class FQSwarmAgent(FQAgent):
 
         self.neighbor_agents = None 
         self.inconsistent_subject_answers = 0 
+        self.inconsistent_answers = 0 
 
         self.dec0 = None 
         return 
@@ -53,9 +54,14 @@ class FQSwarmAgent(FQAgent):
         self.received_answer = sender_ans 
 
         if is_sender_subject: 
-            if self.received_answer != self.received_answer_from_subject: 
+            if type(self.received_answer_from_subject) != type(None) and \
+                self.received_answer != self.received_answer_from_subject: 
                 self.inconsistent_subject_answers += 1 
-        
+            self.received_answer_from_subject = sender_ans 
+
+        if self.received_answer != self.current_answer: 
+            self.inconsistent_answers += 1 
+
         # demand proof 
         if self.error_term < 0.5: 
             self.dec0 = "proof"
@@ -113,9 +119,6 @@ class FQAgentSwarm:
         self.agent_action_ctr_map = defaultdict(int) 
         return 
 
-    def error_terms(self):
-        return {k:v.error_term for k,v in self.swarm_agent_map.items()}
-
     def active_neighbor_agents(self,a_idn):
         N = self.neighbors_of_agent(a_idn) 
         return {n for n in N if self.agent_action_ctr_map[n] < self.max_agent_actions_per_round}  
@@ -140,6 +143,12 @@ class FQAgentSwarm:
 
     def update_action_ctr(self,a_idn): 
         self.agent_action_ctr_map[a_idn] += 1 
+
+    def error_terms(self):
+        return {k:v.error_term for k,v in self.swarm_agent_map.items()}
+
+    def inconsistency_map(self): 
+        return {k:(v.inconsistent_subject_answers,v.inconsistent_answers) for k,v in self.swarm_agent_map.items()}
 
     @staticmethod
     def generate_instance(num_agents,possible_answer_set,max_agent_actions_per_round,prg,\
@@ -181,10 +190,20 @@ class FQSubjectTypeDD(FQAgent):
 
         self.incon_func = incon_func 
         self.prg = self.incon_func.prg 
+
+        self.num_queries = 0
+        # used to keep track of accepted and rejected proofs 
+        self.accepts = 0  
+        self.rejects = 0 
         return 
 
     def answer(self,a_idn):
+        self.num_queries += 1 
         return self.incon_func.answer(a_idn)
+
+    def update_ar_count(self,do_accept:bool): 
+        if do_accept: self.accepts += 1 
+        else: self.rejects += 1 
 
     def update_answer(self,a_idn,ans,answer_type): 
         self.incon_func.update_answer(a_idn,ans,answer_type) 

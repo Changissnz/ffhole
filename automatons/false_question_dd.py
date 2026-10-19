@@ -23,11 +23,6 @@ class FalseQuestionTypeDD:
         self.verbose = verbose 
         return 
 
-    def error_terms(self): 
-        D = self.fas.error_terms() 
-        D["subject"] = self.fs.error_term
-        return D 
-
     """
     main method
     """
@@ -38,6 +33,21 @@ class FalseQuestionTypeDD:
         while len(self.queue_pass_proc) > 0 or len(self.queue_proof_proc) > 0: 
             self.exec_q_round_() 
 
+    """
+    starts the questioning round 
+    """
+    def start_q_chain(self): 
+
+        A = self.fas.first_q_agent()
+        self.exec_q(A,self.fs) 
+        return
+
+    """
+    runs the questioning round after it has started. Every call 
+    executes one proof process between questioning and answering 
+    agents, and one pass process from the previous questioning agent 
+    to its neighbors. 
+    """
     def exec_q_round_(self): 
         # next proof 
         if len(self.queue_proof_proc) > 0: 
@@ -58,13 +68,6 @@ class FalseQuestionTypeDD:
             print("==================================")
         return 
 
-
-    def start_q_chain(self): 
-
-        A = self.fas.first_q_agent()
-        self.exec_q(A,self.fs) 
-        return
-
     """
     executes question action from `q_agent` to `a_agent` 
     """
@@ -79,14 +82,20 @@ class FalseQuestionTypeDD:
 
         q_agent.recv_answer(ans,stat) 
         self.fas.update_action_ctr(q_agent.idn) 
+
+        # questioning agent makes decision 
         D = q_agent.decision_0()
 
         if self.verbose: 
             s0,s1 = self.agent_to_idn(q_agent),self.agent_to_idn(a_agent) 
             print("q={},a={} --> q {}".format(s0,s1,D)) 
-        # 
+
+        # proof demanded; questioning agent requires one from both the sender 
+        # Swarm Agent and the Subject. 
         if D == "proof":
-            self.enqueue_proof_proc(q_agent,a_agent)
+            self.enqueue_proof_proc(q_agent,self.fs) 
+            if self.agent_to_idn(a_agent) != "subject": 
+                self.enqueue_proof_proc(q_agent,a_agent) 
         else: 
             self.enqueue_pass_proc(q_agent)
         return 
@@ -100,14 +109,17 @@ class FalseQuestionTypeDD:
         prg1 = q_agent.prg   
         pf,score,autocorrect_ratio = self.Q.proof_process(prg0,prg1)
 
-
         a_agent.update_error_term(autocorrect_ratio) 
         
         D2 = q_agent.decision_p(pf,score) 
-        if self.verbose: print("-- proof decision: {}, score: {}   {}".format(D2,score,autocorrect_ratio))
+        if self.verbose: 
+            print("-- {} provides proof to {}".format(self.agent_to_idn(a_agent),self.agent_to_idn(q_agent))) 
+            print("-- proof decision: {}, score: {}   {}".format(D2,score,autocorrect_ratio))
 
         # case: subject is answering agent
         if a_agent == self.fs:
+            a_agent.num_queries += 1 
+            a_agent.update_ar_count(D2 == "accept") 
             # subject changes its answer to a_agent 
             if D2 == "reject":  
                 a_agent.update_answer(q_agent.idn,q_agent.current_answer,"exp") 
@@ -153,3 +165,15 @@ class FalseQuestionTypeDD:
     def agent_to_idn(self,a_agent): 
         return "subject" if type(a_agent) == FQSubjectTypeDD else \
             a_agent.idn
+
+    #------------------------------------------ performance measures 
+
+    def error_terms(self): 
+        D = self.fas.error_terms() 
+        D["subject"] = self.fs.error_term
+        return D 
+
+    def inconsistencies(self): 
+        M = self.fas.inconsistency_map() 
+        M0 = self.fs.incon_func.inconsistency_count
+        return M0,M 
