@@ -1,3 +1,8 @@
+from falses.question_swps import * 
+from falses.incon_esar import * 
+from morebs2.numerical_generator import prg_to_LCG_stack
+from xFS_bots.graph_models.graph_gen import * 
+from xFS_bots.graph_models.community import graph_component_size
 
 class FQAgent: 
 
@@ -28,6 +33,7 @@ class FQSwarmAgent(FQAgent):
         self.initial_answer = initial_answer
         self.current_answer = initial_answer
         self.answer_set = possible_answer_set
+        self.prg = prg 
 
         # stores answer from any sender 
         self.received_answer = None 
@@ -76,7 +82,7 @@ class FQSwarmAgent(FQAgent):
     def decision_p(self,pf,pf_score): 
 
         # accept new answer: 
-        if pf_score < sum(pf.ve_score()) / 2.0: 
+        if pf_score < (len(pf) - 1) / 2.0: 
             self.current_answer = self.received_answer
             return "accept" 
 
@@ -106,16 +112,16 @@ class FQAgentSwarm:
 
     @staticmethod
     def generate_instance(num_agents,possible_answer_set,max_questions_per_round,prg,\
-        agent_prg_lcg_degree_range,edge_connectivity=[0.1,0.3]):
+        agent_prg_lcg_degree_range,edge_connectivity_range=[0.1,0.3]):
 
         assert 1 < num_agents < 51, "max of 50 agents!" 
         answers = prg_choose_n(sorted(possible_answer_set),num_agents,\
-            prg,is_unique_picker=False)
+            prg__single_to_int(prg),is_unique_picker=False)
 
         prng_seq = [] 
         for _ in range(num_agents): 
             degree = modulo_in_range(int(prg()),agent_prg_lcg_degree_range) 
-            prg2 = prg_to_LCG_stack(degree,[add,sub],prg) 
+            prg2 = prg_to_LCG_stack(prg,degree,[add,sub]) 
             prng_seq.append(prg2) 
         
         swarm_agent_map = dict() 
@@ -123,6 +129,7 @@ class FQAgentSwarm:
             A = FQSwarmAgent(i,a,deepcopy(possible_answer_set),p) 
             swarm_agent_map[i] = A 
         
+        edge_connectivity = modulo_in_range(prg(),edge_connectivity_range)
         gg = GraphGen(is_dsg=False,prg=prg,is_realtime_gen=bool(int(prg()) % 2),\
             vertex_degree=num_agents,edge_connectivity=edge_connectivity) 
         gg.full_run() 
@@ -166,11 +173,12 @@ class FQSubjectTypeDD(FQAgent):
         num_missing_answers = ceil(len(agent2exp_map) * missing_answer_ratio)
         num_incorrect_answers = ceil((len(agent2exp_map) - num_missing_answers) * incorrect_answer_ratio) 
         
-        no_answers = prg_choose_n(sorted(agent2exp_map.keys()),num_missing_answers,prg,is_unique_picker=True) 
+        prg_ = prg__single_to_int(prg)
+        no_answers = prg_choose_n(sorted(agent2exp_map.keys()),num_missing_answers,prg_,is_unique_picker=True) 
         for a in no_answers: agent2exp_map[a] = None 
 
         with_answers = set(agent2exp_map.keys()) - set(no_answers) 
-        incorrect_answers = prg_choose_n(sorted(with_answers),num_incorrect_answers,prg,is_unique_picker=True) 
+        incorrect_answers = prg_choose_n(sorted(with_answers),num_incorrect_answers,prg_,is_unique_picker=True) 
         for a in incorrect_answers: 
             actual = agent2exp_map[a] 
             alternatives = possible_answer_set - {actual} 
@@ -183,7 +191,7 @@ class FQSubjectTypeDD(FQAgent):
 
         #       gather the other variables 
         agent2recv_map = agent_swarm.agent_received_answers() 
-        agent_relation_graph = deepcopy(agent_swarm.agent_relation_graph) 
+        agent_relation_graph = deepcopy(agent_swarm.swarm_graph) 
 
         ifunc = InconsistentFunctionTypeESAR(default_ans,agent2exp_map,agent2recv_map,\
             agent_relation_graph,prg)

@@ -29,6 +29,8 @@ class QuestionTypeSWPS:
         self.node_path_soln_size_range = node_path_soln_size_range
         self.max_num_path_corrections_range = max_num_path_corrections_range
         self.prg = prg  
+
+        self.start_node = None 
         self.preproc(start_node_for_paths) 
         return 
 
@@ -40,29 +42,22 @@ class QuestionTypeSWPS:
         else: 
             assert start_node_for_paths in self.G 
 
+        self.start_node = start_node_for_paths
+
         is_bfs = bool(int(self.prg()) % 2) 
         B = BDFSCache(start_node_for_paths,self.G,is_bfs=is_bfs,prg=self.prg,\
             edge_cost_function=lambda u,v:1,\
             num_paths_per_node=DEFAULT_QUESTION_TYPE_SWPS_NUM_PATHS_PER_NODE,\
             max_search_radius=float('inf'),verbose=False)
         B.exec()
-        print("after BFS") 
 
         P = PathInduction(start_node_for_paths,B.min_paths,self.prg,num_segment_range=[1,5]) 
         q = P.induce_paths_from_other_references(self.G)
-        print("after path induction")
-
-        print("QQQ")
-        print(q) 
 
         self.nodepair2paths = defaultdict(list) 
         for k,v in B.min_paths.items(): self.nodepair2paths[(start_node_for_paths,k)] = v 
-        print("BB")
-        print(self.nodepair2paths)
 
-        print("STARTING ", len(q))
-        for k,v in q.items(): 
-            print("- KK: ",k)
+        for k,v in q.items():
             self.nodepair2paths[k].append(v)  
         return 
 
@@ -78,7 +73,6 @@ class QuestionTypeSWPS:
 
         start_node = x.pop(j) 
 
-        print("FETCHING")
         q = fetch_paths_from_node_to_nodeset(self.nodepair2paths,start_node,set(x))
         k = prg_seqsort(sorted(q.keys()),self.prg)[:i] 
         paths = [] 
@@ -95,8 +89,6 @@ class QuestionTypeSWPS:
     def proof_process(self,demonstrator_prng,observer_prng): 
 
         start_node,paths = self.choose_node_path_solution() 
-        print("PATHS")
-        print(paths)
         P = ProofDifferentialSimulatorTypeACSGT(self.G,start_node,DEFAULT_EDGE_COST_FUNCTION_2,\
             paths,GraphTraversalContextCR(dict()),demonstrator_prng,\
             max_num_path_corrections=DEFAULT_QUESTION_TYPE_SWPS_MAX_NUM_PATHS_CORRECTIONS)

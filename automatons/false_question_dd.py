@@ -1,18 +1,19 @@
+from .false_question_agents import * 
 
 """
 False Question Type (D)elay and (D)ivert. 
 """
 class FalseQuestionTypeDD: 
 
-    def __init__(self,Q:QuestionTypeSWPS,fs:FQSubjectTypeDD,fsa:FQSwarmAgent,subject_objective:ObjectiveTypeUSGMP): 
+    def __init__(self,Q:QuestionTypeSWPS,fs:FQSubjectTypeDD,fas:FQSwarmAgent,subject_objective:ObjectiveTypeUSGMP): 
         assert type(Q) == QuestionTypeSWPS
         assert type(fs) == FQSubjectTypeDD
-        assert type(fsa) == FQSwarmAgent
+        assert type(fas) == FQAgentSwarm
         assert type(subject_objective) == ObjectiveTypeUSGMP
 
         self.Q = Q 
-        self.fs = FQSubjectTypeDD
-        self.fsa = FQSwarmAgent 
+        self.fs = fs
+        self.fas = fas 
         self.subject_objective = subject_objective
 
         self.queue_pass_proc = deque() 
@@ -28,14 +29,16 @@ class FalseQuestionTypeDD:
     def exec_action(self,q_agent,a_agent): 
 
         # pass answer 
-        if a_agent == self.fs: 
+        print("A_AGENT: ",a_agent) 
+        stat = a_agent == self.fs
+        if stat: 
             ans = a_agent.answer(q_agent.idn)  
         else: 
             ans = a_agent.answer() 
 
-        q_agent.recv_answer(ans) 
+        q_agent.recv_answer(ans,stat) 
 
-        D = q_agent.decision()
+        D = q_agent.decision_0()
 
         # 
         if D == "proof":
@@ -57,4 +60,4 @@ class FalseQuestionTypeDD:
             if D2 == "reject":  
                 a_agent.update_answer(q_agent.idn,q_agent.current_answer,"exp") 
             # subject updates its most recent answer sent to agent 
-            a_agent.update_answer(q.agent.idn,ans,"sent")
+            a_agent.update_answer(q_agent.idn,q_agent.received_answer,"sent")
