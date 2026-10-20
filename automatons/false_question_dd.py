@@ -10,18 +10,18 @@ class FalseQuestionTypeDD:
         assert type(Q) == QuestionTypeSWPS
         assert type(fs) == FQSubjectTypeDD
         assert type(fas) == FQAgentSwarm
-        assert type(subject_objective) == ObjectiveTypeUSGMP
+        assert type(subject_objective) == ObjectiveTypeEFIT
 
         self.Q = Q 
         self.fs = fs
         self.fas = fas 
         self.subject_objective = subject_objective
+        self.verbose = verbose 
 
         self.queue_pass_proc = deque() 
         self.queue_proof_proc = deque() 
-
-        self.verbose = verbose 
         return 
+
 
     """
     main method

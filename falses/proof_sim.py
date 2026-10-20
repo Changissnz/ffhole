@@ -31,6 +31,133 @@ class ObjectiveTypeUSGMP:
     def head(self): 
         return self.node_path_soln[0].head() 
 
+    def score_path(self,ext_path): 
+        assert type(ext_path) == NodePath
+
+        G0 = MicroGraph(ext_path.to_graph(True))
+        s = 0 
+        for p in self.node_path_soln: 
+            G1 = MicroGraph(p.to_graph(True)) 
+            if G0 == G1: 
+                return 0 
+
+            s00,s01 = G0.sub_ve_score(G1) 
+            s10,s11 = G1.sub_ve_score(G0) 
+            s += (s00 + s01 + s10 + s11)         
+        return s / len(self.node_path_soln)
+
+    """
+    return: 
+    - one <NodePath> in `node_path_soln` that contains `node`, index of `node` in the <NodePath>
+    """
+    def path_info_for_node(self,node): 
+
+        for x in self.node_path_soln: 
+            ns = x.p 
+            if node in ns: 
+                return x,ns.index(node)
+        return None,None 
+
+    def all_path_info_for_node(self,node): 
+
+        q = [] 
+        for x in self.node_path_soln: 
+            ns = x.p 
+            if node in ns: 
+                q.append((x,ns.index(node))) 
+
+        return q 
+
+
+"""
+Objective Type (E)xternal (F)actor (I)nfluenced (T)raversal. 
+
+Subclass of class<ObjectiveTypeUSGMP>. 
+
+Structure acts as the objective for an <FQSubjectTypeDD> in 
+the <FalseQuestionTypeDD> automaton. Structure can be used in 
+the general purpose of an objective by which an agent that is 
+externally influenced attempts to execute. 
+""" 
+class ObjectiveTypeEFIT(ObjectiveTypeUSGMP): 
+
+    def __init__(self,G,start_node,node_path_solution_seq): 
+        super().__init__(G,start_node,node_path_solution_seq)
+        
+        self.current_loc = None 
+        self.current_path = None 
+        self.current_index = None
+        
+        self.fin_stat = False  
+        self.npath = None 
+        self.preproc() 
+
+    def preproc(self): 
+        self.current_loc = self.head()
+        self.current_path,self.current_index = self.path_info_for_node(self.current_loc)  
+
+        self.npath = NodePath(self.current_loc)
+
+    def exec(self,counter_pr,ext_prg):  
+        if self.fin_stat: return None 
+
+        assert 0.0 <= counter_pr <= 1.0 
+
+        print("LLL: ",len(self.npath),self.minmax_path_lengths[1])
+        if len(self.npath) > self.minmax_path_lengths[1]: 
+            self.fin_stat = True 
+            return None 
+
+        take_planned_path = bool(prg_decimal(ext_prg,[0.,1.]) < (1.0 - counter_pr)) 
+
+        # case: take the next node in the path 
+        if take_planned_path: 
+            return self.next_node__planned_path()
+
+        # case: attempt to move to a next node that is not a next 
+        #       for any path containing `current_loc`. 
+        return self.next_node__contra_path(ext_prg) 
+
+    def next_node__planned_path(self): 
+        i = self.current_index + 1 
+
+        # subcase: finished traversal 
+        if i >= len(self.current_path): 
+            self.fin_stat = True 
+            return None 
+        
+        next_loc = self.current_path[i] 
+        self.npath.append(next_loc,1) 
+        self.current_loc = next_loc 
+        self.current_index += 1 
+        return next_loc
+
+    def next_node__contra_path(self,ext_prg): 
+        npath_info = self.all_path_info_for_node(self.current_loc)
+        possible_nexts = set() 
+
+        for x in npath_info: 
+            i = x[1] + 1 
+            if i < len(x[0]): 
+                possible_nexts |= {x[0][i]} 
+
+        alt_neighbors = self.G[self.current_loc] - possible_nexts 
+
+        # subcase: no alternative neighbors exist. Attempt to take 
+        #          a next node not part of the current path 
+        if len(alt_neighbors) == 0: 
+            exclude_set = set() if self.current_index + 1 >= len(self.current_path) \
+                else {self.current_path[self.current_index + 1]} 
+
+            alt_neighbors = possible_nexts - exclude_set 
+
+        alt_neighbors = sorted(alt_neighbors) 
+        j = int(ext_prg()) % len(alt_neighbors) 
+        next_loc = alt_neighbors[j]
+        self.npath.append(next_loc,1.0)
+        self.current_node,self.current_index = self.path_info_for_node(next_loc)
+        return next_loc 
+
 """
 Proof Differential Simulator Type (S)tochastic (G)raph (T)raversal. 
 
@@ -71,19 +198,8 @@ class ProofDifferentialSimulatorTypeSGT(ObjectiveTypeUSGMP):
     """
     def exec(self,ext_prg):
         ext_path = self.external_agent_path(ext_prg)
-        G0 = MicroGraph(ext_path.to_graph(True)) 
 
-        stat = False 
-        s = 0 
-        for p in self.node_path_soln: 
-            G1 = MicroGraph(p.to_graph(True)) 
-            if G0 == G1: 
-                return ext_path, 0 
-
-            s00,s01 = G0.sub_ve_score(G1) 
-            s10,s11 = G1.sub_ve_score(G0) 
-            s += (s00 + s01 + s10 + s11)         
-        return ext_path, s / len(self.node_path_soln)
+        return ext_path, self.score_path(ext_path)
 
     # NOTE: assumes edge cost function `ecf` outputs a 
     #       constant value for any edge (u,v). 
@@ -381,15 +497,3 @@ class ProofDifferentialSimulatorTypeACSGT(ProofDifferentialSimulatorTypeCSGT):
         d = X_ - pr 
         i2 = np.argmin(np.abs(d)) 
         return d[i2]
-
-    """
-    return: 
-    - one <NodePath> in `node_path_soln` that contains `node`, index of `node` in the <NodePath>
-    """
-    def path_info_for_node(self,node): 
-
-        for x in self.node_path_soln: 
-            ns = x.p 
-            if node in ns: 
-                return x,ns.index(node)
-        return None,None 
