@@ -27,7 +27,7 @@ class FQSwarmAgent(FQAgent):
         super().__init__()
 
         assert initial_answer in possible_answer_set
-        assert type(possible_answer_set) == set
+        assert type(possible_answer_set) == set and len(possible_answer_set) > 1 
         assert idn != "subject" 
 
         self.idn = idn 
@@ -73,6 +73,11 @@ class FQSwarmAgent(FQAgent):
 
     def answer(self): 
         return self.current_answer 
+
+    def contra_answer(self,given_ans): 
+        q = sorted(self.answer_set - {given_ans}) 
+        i = int(self.prg()) % len(q) 
+        return q[i]
 
     """
     demand proof of answer or pass answer 
@@ -150,6 +155,17 @@ class FQAgentSwarm:
     def inconsistency_map(self): 
         return {k:(v.inconsistent_subject_answers,v.inconsistent_answers) for k,v in self.swarm_agent_map.items()}
 
+    """
+    clear error terms and inconsistent answer counts. 
+    """
+    def clear_counters(self): 
+        for v in self.swarm_agent_map.values(): 
+            v.error_term = 0. 
+            v.num_iterations = 0 
+            v.inconsistent_subject_answers = 0 
+            v.inconsistent_answers = 0 
+        return
+
     @staticmethod
     def generate_instance(num_agents,possible_answer_set,max_agent_actions_per_round,prg,\
         agent_prg_lcg_degree_range,edge_connectivity_range=[0.1,0.3]):
@@ -207,6 +223,12 @@ class FQSubjectTypeDD(FQAgent):
 
     def update_answer(self,a_idn,ans,answer_type): 
         self.incon_func.update_answer(a_idn,ans,answer_type) 
+
+    def clear_counters(self): 
+        self.incon_func.inconsistency_count.clear() 
+        self.num_queries = 0 
+        self.accepts = 0 
+        self.rejects = 0 
 
     @staticmethod 
     def generate_instance(agent_swarm:FQAgentSwarm,default_ans,possible_answer_set,missing_answer_ratio,\

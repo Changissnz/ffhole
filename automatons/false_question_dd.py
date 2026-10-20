@@ -22,8 +22,31 @@ class FalseQuestionTypeDD:
         self.queue_proof_proc = deque() 
 
         self.fin_stat = False 
+
+        self.cumulative_errors = Counter(dict())
+        self.cumulative_inconsistencies_S = Counter(dict())
+        self.cumulative_inconsistencies_A0 = Counter(dict())
+        self.cumulative_inconsistencies_A1 = Counter(dict())
+
+        self.cumulative_path_score = 0 
         return 
 
+    """
+    main method #1 
+    """
+    def exec_one_objective(self): 
+        self.fin_stat = False 
+
+        while not self.fin_stat: 
+            next(self) 
+
+        self.update_scores() 
+        self.update_subject_obj()
+        return
+
+    """
+    main method #2 
+    """
     def __next__(self): 
         if self.fin_stat: return 
 
@@ -34,12 +57,8 @@ class FalseQuestionTypeDD:
         self.exec_q_round() 
         self.exec_subject_travel() 
     
-    def exec_subject_travel(self): 
-        q = zero_div(self.fs.rejects,self.fs.rejects + self.fs.accepts,0.0) 
-        self.subject_objective.exec(q,self.fs.prg)
-
     """
-    main method
+    main method #3
     """
     def exec_q_round(self): 
         self.fas.agent_action_ctr_map.clear() 
@@ -47,6 +66,10 @@ class FalseQuestionTypeDD:
 
         while len(self.queue_pass_proc) > 0 or len(self.queue_proof_proc) > 0: 
             self.exec_q_round_() 
+
+    def exec_subject_travel(self): 
+        q = zero_div(self.fs.rejects,self.fs.rejects + self.fs.accepts,0.0) 
+        self.subject_objective.exec(q,self.fs.prg)
 
     """
     starts the questioning round 
@@ -125,7 +148,7 @@ class FalseQuestionTypeDD:
         pf,score,autocorrect_ratio = self.Q.proof_process(prg0,prg1)
 
         a_agent.update_error_term(autocorrect_ratio) 
-        
+
         D2 = q_agent.decision_p(pf,score) 
         if self.verbose: 
             print("-- {} provides proof to {}".format(self.agent_to_idn(a_agent),self.agent_to_idn(q_agent))) 
@@ -135,12 +158,13 @@ class FalseQuestionTypeDD:
         if a_agent == self.fs:
             a_agent.num_queries += 1 
             a_agent.update_ar_count(D2 == "accept") 
-            # subject changes its answer to a_agent 
+            # subject changes its answer to something else 
             if D2 == "reject":  
-                a_agent.update_answer(q_agent.idn,q_agent.current_answer,"exp") 
+                alt_answer = q_agent.contra_answer(q_agent.received_answer)
+                a_agent.update_answer(q_agent.idn,alt_answer,"exp") 
             # subject updates its most recent answer sent to agent 
             a_agent.update_answer(q_agent.idn,q_agent.received_answer,"sent")
-        
+
         self.fas.update_action_ctr(q_agent.idn) 
         self.enqueue_pass_proc(q_agent)
 
@@ -181,7 +205,32 @@ class FalseQuestionTypeDD:
         return "subject" if type(a_agent) == FQSubjectTypeDD else \
             a_agent.idn
 
+    #------------------------------------------ objective update function 
+
+    def update_subject_obj(self): 
+        start_node,node_path_soln = self.Q.choose_node_path_solution() 
+        self.subject_objective = ObjectiveTypeEFIT(self.Q.G,start_node,node_path_soln)
+
     #------------------------------------------ performance measures 
+
+    def display_score(self): 
+        print("-- cumulative errors")
+        for k,v in self.cumulative_errors.items(): print("* {} : {}".format(k,v)) 
+        print() 
+
+        print("-- subject inconsistencies (answers to agents)") 
+        for k,v in self.cumulative_inconsistencies_S.items(): print("* {} : {}".format(k,v)) 
+        print() 
+
+        print("-- agent inconsistencies from subject") 
+        for k,v in self.cumulative_inconsistencies_A0.items(): print("* {} : {}".format(k,v)) 
+        print() 
+
+        print("-- agent inconsistencies from other agents") 
+        for k,v in self.cumulative_inconsistencies_A1.items(): print("* {} : {}".format(k,v)) 
+        print() 
+
+        print("-- path score: ",self.cumulative_path_score)
 
     def error_terms(self): 
         D = self.fas.error_terms() 
@@ -192,3 +241,28 @@ class FalseQuestionTypeDD:
         M = self.fas.inconsistency_map() 
         M0 = self.fs.incon_func.inconsistency_count
         return M0,M 
+
+    def path_score(self): 
+        return self.subject_objective.score_path(self.subject_objective.npath)
+
+    def update_scores(self): 
+        # add scores to cumulative maps  
+        errors = self.error_terms()
+        self.cumulative_errors += Counter(errors) 
+
+        incons = self.inconsistencies() 
+
+        self.cumulative_inconsistencies_S += Counter(incons[0]) 
+
+        incons10 = {k:v[0] for k,v in incons[1].items()}
+        incons11 = {k:v[1] for k,v in incons[1].items()}
+
+        self.cumulative_inconsistencies_A0 += Counter(incons10) 
+        self.cumulative_inconsistencies_A1 += Counter(incons11) 
+
+        self.cumulative_path_score += self.path_score() 
+        
+        # clear present counters 
+        self.fas.clear_counters() 
+        self.fs.clear_counters() 
+        return 

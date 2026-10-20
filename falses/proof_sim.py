@@ -106,7 +106,6 @@ class ObjectiveTypeEFIT(ObjectiveTypeUSGMP):
 
         assert 0.0 <= counter_pr <= 1.0 
 
-        print("LLL: ",len(self.npath),self.minmax_path_lengths[1])
         if len(self.npath) > self.minmax_path_lengths[1]: 
             self.fin_stat = True 
             return None 
@@ -153,6 +152,9 @@ class ObjectiveTypeEFIT(ObjectiveTypeUSGMP):
                 else {self.current_path[self.current_index + 1]} 
 
             alt_neighbors = possible_nexts - exclude_set 
+
+        if len(alt_neighbors) == 0: 
+            alt_neighbors = deepcopy(self.G[self.current_loc]) 
 
         alt_neighbors = sorted(alt_neighbors) 
         j = int(ext_prg()) % len(alt_neighbors) 
