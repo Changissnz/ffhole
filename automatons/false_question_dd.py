@@ -20,8 +20,23 @@ class FalseQuestionTypeDD:
 
         self.queue_pass_proc = deque() 
         self.queue_proof_proc = deque() 
+
+        self.fin_stat = False 
         return 
 
+    def __next__(self): 
+        if self.fin_stat: return 
+
+        if self.subject_objective.fin_stat: 
+            self.fin_stat = True 
+            return 
+
+        self.exec_q_round() 
+        self.exec_subject_travel() 
+    
+    def exec_subject_travel(self): 
+        q = zero_div(self.fs.rejects,self.fs.rejects + self.fs.accepts,0.0) 
+        self.subject_objective.exec(q,self.fs.prg)
 
     """
     main method

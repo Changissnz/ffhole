@@ -100,6 +100,9 @@ class ObjectiveTypeEFIT(ObjectiveTypeUSGMP):
 
     def exec(self,counter_pr,ext_prg):  
         if self.fin_stat: return None 
+        if type(self.current_index) == type(None): 
+            self.fin_stat = True 
+            return None 
 
         assert 0.0 <= counter_pr <= 1.0 
 
