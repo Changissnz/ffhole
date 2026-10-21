@@ -72,7 +72,9 @@ NOTE: the <FQSubjectTypeDD> does not answer the question of `Q` with a constant 
 The counter-probability, that is, the probability of `fs` traversing a next node that is 
 not a next node, given the current node, of any of the solution paths in `subject_objective`, 
 is `fs.rejects / (fs.accepts + fs.rejects)`. This counter-probability is applied through 
-`fs`'s PRNG-generated decimal value d in [0.,1.]. 
+`fs`'s PRNG-generated decimal value d in [0.,1.].  
+The `accept` and `reject` non-negative integers are the counts of proof acceptances 
+and rejections, respectively. 
 
 ---------------------------------------------------------------------------------------
 
