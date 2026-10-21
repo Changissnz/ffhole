@@ -2,7 +2,83 @@ from .false_question_agents import *
 
 """
 False Question Type (D)elay and (D)ivert. 
-"""
+
+Composed of four primary components: 
+(1) <QuestionTypeSWPS>: subjective question representative used to facilitate 
+    questioning activity between two agents. The two agents are either 
+        (<FQSwarmAgent> questions <FQSwarmAgent>) OR 
+        (<FQSwarmAgent> questions <FQSubjectTypeDD>). 
+(2) <FQSubjectTypeDD>: subjected to questioning activity. Primary purpose 
+    is to traverse one of the <NodePaths> in the solution set of <ObjectiveTypeUSGMP> 
+(3) <FQSwarmAgent>: composed of k agents, arranged in a connected graph (graph with one 
+    component). Swarm agents act as antagonists to <FQSubjectTypeDD> traversing a 
+    solution path. 
+(4) <ObjectiveTypeUSGMP>: objective of the subject. Based on q unique paths of a simple 
+    undirected graph, each with the same starting node. 
+
+Every time method<exec_one_objective> is called, a new <ObjectiveTypeUSGMP> is generated 
+by `Q`. This is the main method that processes the unit problem of this automaton. 
+---------------------------------------------------------------------------------
+
+<FQSubjectTypeDD> `fs` is to travel one of the solution paths specified in `subject_objective`. 
+At every node in its current path P, until 
+    |P| >= MAX_{p in subject_objective}(|p|), 
+`fs` has to perform actions in a chain-of-questioning C, and the results from these actions 
+influence the probability that `fs` takes a next node, from its current node, that is 
+one of the next nodes in the set of solution paths of `subject_objective`. 
+
+The chain-of-questioning C is initiated by `fas` choosing a starting agent `A`. `A` 
+questions `fs` on the answer to question `Q`. Question process goes as such for any 
+two agents (questioner S,responder R). 
+- R sends its answer to questioner S. 
+- S makes decision: 
+    have R provide "proof" XOR 
+    accept R's answer and "pass" it to active swarm agent neighbors. 
+- The decision of S is a simple rule: if `S.error_term` < 0.5, `S` accepts 
+  R's answer. Otherwise, it demands "proof". 
+
+  NOTE: the `error_term` is the ratio of auto-corrected edges, from the <QuestionTypeSWPS>'s 
+        execution of a <ProofDifferentialSimulatorTypeACSGT>'s main method. 
+- Proof process is done through `Q.proof_process`. The results from this method are 
+  used as parameters for method<FQSwarmAgent.decision_p>. The rule is if the path 
+  difference score of the proof path is less than half the length of the proof path, 
+  then proof is accepted. 
+- If the proof is accepted, then the questioning agent changes its answer to the one 
+  provided by the answering agent. Otherwise, responder changes its answer to the one 
+  provided by the questioning agent. 
+
+If S decides to "pass" answer of R, it passes only to its active swarm agent neighbors. 
+When every neighbor S_n processes this pass of answer from S, S_n demands proof from 
+S. S_n also demands proof from `fs` if 
+    `fs` != R. 
+NOTE: this is a triangulation scheme where questioner S_n demands proof of answer from 
+      both the immediate sender and the central subject `fs` of the automaton. 
+
+NOTE: there is a limit to how many questioning actions a swarm agent can take for every 
+    chain-of-questioning, so that there is no possibility the process enters an infinite 
+    loop. 
+
+NOTE: the <FQSubjectTypeDD> does not answer the question of `Q` with a constant singleton 
+      for any swarm agent. Instead, it relies on <InconsistentFunctionTypeESAR>, a map 
+      structure, the most important maps being 
+        (0) M_exp : agent idn -> agent's expected answer 
+        (1) M_r : agent idn -> subject's most recent answer to agent. 
+      These two maps are mutable, and are updated every time there is questioning from 
+      swarm agent to `fs`. 
+
+      The subject `fs` chooses to answer agent A_i with either M_exp[i] (its prediction of 
+      A_i's expected answer) or M_r[i] (consistent answer to A_i), via the PRNG of `fs`. 
+
+The counter-probability, that is, the probability of `fs` traversing a next node that is 
+not a next node, given the current node, of any of the solution paths in `subject_objective`, 
+is `fs.rejects / (fs.accepts + fs.rejects)`. This counter-probability is applied through 
+`fs`'s PRNG-generated decimal value d in [0.,1.]. 
+
+---------------------------------------------------------------------------------------
+
+NOTE: see the class variable<cumulative_*> for more information on important measures 
+collected throughout the automaton's run. 
+""" 
 class FalseQuestionTypeDD: 
 
     def __init__(self,Q:QuestionTypeSWPS,fs:FQSubjectTypeDD,fas:FQSwarmAgent,\
@@ -23,11 +99,20 @@ class FalseQuestionTypeDD:
 
         self.fin_stat = False 
 
+        # agent idn -> error from auto-correction process in proofs 
         self.cumulative_errors = Counter(dict())
+        # agent idn -> number of inconsistencies (changes) in answers of  
+        #           subject to swarm agent, due to swarm agent's rejection 
+        #           of proof. 
         self.cumulative_inconsistencies_S = Counter(dict())
+        # agent idn -> number of answers from subject to agent that differ 
+        #              from agent's current answer. 
         self.cumulative_inconsistencies_A0 = Counter(dict())
+        # agent idn -> total number of inconsistent answers from any other agent 
         self.cumulative_inconsistencies_A1 = Counter(dict())
 
+        # cumulative path difference between subject's traversed paths 
+        # and solution paths. 
         self.cumulative_path_score = 0 
         return 
 
