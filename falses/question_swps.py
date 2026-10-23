@@ -17,18 +17,22 @@ Output determines whether demonstrator or observer answer is accepted.
 """
 class QuestionTypeSWPS: 
 
-    def __init__(self,G,answer_set,node_path_soln_size_range,max_num_path_corrections_range,prg,start_node_for_paths=None):   
+    def __init__(self,G,answer_set,node_path_soln_size_range,max_num_path_corrections_range,\
+        prg,start_node_for_paths=None,\
+        proof_simulation_output_space_range = DEFAULT_QUESTION_PROOF_SIMULATION_OUTPUT_SPACE_RATIO_RANGE):   
         assert type(G) == defaultdict
         assert type(answer_set) == set 
         assert is_valid_range(node_path_soln_size_range,True,False) and node_path_soln_size_range[0] > 0 
         assert is_valid_range(max_num_path_corrections_range,True,False) and max_num_path_corrections_range[0] > 0 
         assert type(prg) in {MethodType,FunctionType}
+        assert is_valid_range(proof_simulation_output_space_range,False,False)
 
         self.G = G 
         self.answer_set = answer_set
         self.node_path_soln_size_range = node_path_soln_size_range
         self.max_num_path_corrections_range = max_num_path_corrections_range
         self.prg = prg  
+        self.proof_simulation_output_space_range = proof_simulation_output_space_range
 
         self.start_node = None 
         self.preproc(start_node_for_paths) 
@@ -89,9 +93,8 @@ class QuestionTypeSWPS:
     def proof_process(self,demonstrator_prng,observer_prng): 
 
         start_node,paths = self.choose_node_path_solution() 
-
         context = GraphTraversalContextCR.generate_instance(self.G,\
-            DEFAULT_QUESTION_PROOF_SIMULATION_OUTPUT_SPACE_RATIO_RANGE,self.prg)
+            self.proof_simulation_output_space_range,self.prg)
 
         P = ProofDifferentialSimulatorTypeACSGT(self.G,start_node,DEFAULT_EDGE_COST_FUNCTION_2,\
             paths,context,demonstrator_prng,\

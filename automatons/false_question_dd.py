@@ -45,7 +45,8 @@ two agents (questioner S,responder R).
   then proof is accepted. 
 - If the proof is accepted, then the questioning agent changes its answer to the one 
   provided by the answering agent. Otherwise, responder changes its answer to the one 
-  provided by the questioning agent. 
+  provided by the questioning agent. Questioner then passes the resulting answer from 
+  this proof process to its active neighbors. 
 
 If S decides to "pass" answer of R, it passes only to its active swarm agent neighbors. 
 When every neighbor S_n processes this pass of answer from S, S_n demands proof from 
@@ -73,8 +74,8 @@ The counter-probability, that is, the probability of `fs` traversing a next node
 not a next node, given the current node, of any of the solution paths in `subject_objective`, 
 is `fs.rejects / (fs.accepts + fs.rejects)`. This counter-probability is applied through 
 `fs`'s PRNG-generated decimal value d in [0.,1.].  
-The `accept` and `reject` non-negative integers are the counts of proof acceptances 
-and rejections, respectively. 
+The `accept` and `reject` non-negative integers are the cumulative counts of proof 
+acceptances and rejections from the swarm agents, respectively.  
 
 ---------------------------------------------------------------------------------------
 

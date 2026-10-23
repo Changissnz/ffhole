@@ -258,5 +258,33 @@ class ProofDifferentialSimulatorTypeXMethods(unittest.TestCase):
         assert count == defaultdict(int, {0: 189, 8.75: 3, 8.5: 3, 10.25: 5}), "got {}".format(count)
         return 
 
+    def test__ProofDifferentialSimulatorTypeACSGT__next__case_3(self): 
+
+        prg = prg__LCG(533.21,-677.5,521.54,66767.7)
+
+        G,node_path_solution_seq = graph_and_paths_case_COMPLEX1(prg)
+
+        start_node = 0  
+        edge_cost_function = DEFAULT_EDGE_COST_FUNCTION_2
+
+        gtc_cr = GraphTraversalContextCR.generate_instance(G,[0.25,0.30],prg)
+
+        psim = ProofDifferentialSimulatorTypeACSGT(G,start_node,edge_cost_function,node_path_solution_seq,gtc_cr,prg) 
+        psim.verbose = False 
+
+        prg0 = deepcopy(prg) 
+        prg1 = deepcopy(prg0) 
+        prg_ = deepcopy(psim.internal_prg)
+        q = psim.exec(prg) 
+
+        QX = set() 
+        for _ in range(10): 
+            psim.internal_prg = prg_ 
+            prg_ = deepcopy(psim.internal_prg) 
+            X = psim.exec(prg0)
+            prg0 = deepcopy(prg1) 
+            QX |= {X[1]} 
+        assert len(QX) == 1 
+
 if __name__ == '__main__':
     unittest.main()
