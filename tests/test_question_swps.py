@@ -4,7 +4,6 @@ import unittest
 """
 py -m tests.test_question_swps 
 """
-# NOTE: runtime on developer's device: approx. 180 seconds. 
 class QuestionTypeSWPSMethods(unittest.TestCase):
 
     """

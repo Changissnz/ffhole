@@ -5,7 +5,6 @@ import unittest
 """
 py -m tests.test_uncertainty_sim 
 """
-# NOTE: runtime on developer's device: approx. 180 seconds. 
 class UncertaintySimulatorTypeGGDFunctions(unittest.TestCase):
 
     def test__UncertaintySimulatorTypeGGD__cmp__case_1(self): 

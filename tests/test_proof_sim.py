@@ -125,7 +125,6 @@ def GraphTraversalContextCR_case_BASE11():
 """
 py -m tests.test_proof_sim 
 """
-# NOTE: runtime on developer's device: approx. 180 seconds. 
 class ProofDifferentialSimulatorTypeXMethods(unittest.TestCase):
 
     """

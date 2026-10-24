@@ -4,6 +4,7 @@ from morebs2.pr2label import *
 from morebs2.numerical_generator import prg_decimal,modulo_in_range,safe_modulo_in_range,prg_choose_n
 from types import MethodType,FunctionType
 from math import ceil,floor 
+from xFS_bots.graph_models.community import graph_component_size
 
 """
 Objective Type (U)ndirected (S)imple (G)raph, (M)ultiple (P)aths. 
@@ -303,6 +304,14 @@ class GraphTraversalContextCR:
             neighbors = prg_seqsort(deepcopy(neighbors_),prg) 
 
             output_space_ratio = safe_modulo_in_range(prg(),output_space_ratio_range)
+            #print("GC: ",graph_component_size(G))
+            '''
+            print("GC")
+            print(G) 
+            print() 
+            print("QQ: ",output_space_ratio,output_space_ratio_range)
+            print("NN: ",neighbors)
+            '''
             n2 = ceil(output_space_ratio * len(neighbors)) 
             q = prg_choose_n(neighbors,n2,prg_,is_unique_picker=True)
 

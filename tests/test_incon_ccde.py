@@ -9,7 +9,6 @@ import unittest
 """
 py -m tests.test_incon_ccde 
 """
-# NOTE: runtime on developer's device: approx. 180 seconds. 
 class InconsistentFunctionTypeCCDEFunctions(unittest.TestCase):
 
     def test__InconsistentFunctionTypeCCDE__iterate__case_1(self): 

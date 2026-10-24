@@ -14,7 +14,6 @@ def sample_FQAgentSwarm__V20(prg):
 """
 py -m tests.test_false_question_agents
 """
-# NOTE: runtime on developer's device: approx. 180 seconds. 
 class FalseQuestionAgentMethods(unittest.TestCase):
 
     def test__FQSwarmAgent__recv_answer__case_1(self): 

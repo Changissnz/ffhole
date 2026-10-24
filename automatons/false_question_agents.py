@@ -214,6 +214,11 @@ class FQSubjectTypeDD(FQAgent):
         self.rejects = 0 
         return 
 
+    def load_prg(self,prg): 
+        assert type(prg) in {MethodType,FunctionType}
+        self.incon_func.prg = prg 
+        self.prg = prg 
+
     def answer(self,a_idn):
         self.num_queries += 1 
         return self.incon_func.answer(a_idn)

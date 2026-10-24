@@ -47,7 +47,6 @@ def default_FalseEntry_test_varset():
 """
 py -m tests.test_false_entry
 """
-# NOTE: runtime on developer's device: approx. 180 seconds. 
 class FalseEntryFunctions(unittest.TestCase):
 
     """

@@ -10,7 +10,6 @@ def sample_FIDemander(prg):
 """
 py -m tests.test_false_incompetency
 """
-# NOTE: runtime on developer's device: approx. 180 seconds. 
 class FalseIncompetencyMethods(unittest.TestCase):
 
     def test__FalseIncompetency__exec_next_demand__case_1(self): 

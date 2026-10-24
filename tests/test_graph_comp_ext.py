@@ -6,7 +6,6 @@ import unittest
 """
 py -m tests.test_graph_comp_ext 
 """
-# NOTE: runtime on developer's device: approx. 180 seconds. 
 class GraphCompExtFunctions(unittest.TestCase):
 
     def test__prg_choose_subrange_for_n_elements__case_1(self): 

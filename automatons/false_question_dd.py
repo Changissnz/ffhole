@@ -374,7 +374,8 @@ class FalseQuestionTypeDD:
         # generate the graph for the question 
         answer_set = {i for i in range(num_answers)}  
 
-        is_dsg = bool(int(prg()) % 2) 
+        #is_dsg = bool(int(prg()) % 2) 
+        is_dsg = False 
         is_realtime_gen = bool(int(prg()) % 2) 
         vertex_degree = modulo_in_range(int(prg()),DEFAULT_FQDD_QUESTION_GRAPH_NODE_SIZE_RANGE)
         edge_connectivity = modulo_in_range(int(prg()),DEFAULT_FQDD_QUESTION_GRAPH_EDGE_CONN_RANGE)

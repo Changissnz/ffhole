@@ -13,7 +13,6 @@ def sample_FE_graph():
 """
 py -m tests.test_false_entry_functions
 """
-# NOTE: runtime on developer's device: approx. 180 seconds. 
 class FalseEntryFunctions(unittest.TestCase):
 
     def test__possible_graph_traps__case_1(self): 
