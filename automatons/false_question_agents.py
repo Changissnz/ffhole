@@ -90,6 +90,7 @@ class FQSwarmAgent(FQAgent):
     """
     def decision_p(self,pf,pf_score): 
 
+        assert type(pf) == NodePath 
         # accept new answer: 
         if pf_score < (len(pf) - 1) / 2.0: 
             self.current_answer = self.received_answer
@@ -244,7 +245,7 @@ class FQSubjectTypeDD(FQAgent):
 
         num_missing_answers = ceil(len(agent2exp_map) * missing_answer_ratio)
         num_incorrect_answers = ceil((len(agent2exp_map) - num_missing_answers) * incorrect_answer_ratio) 
-        
+
         prg_ = prg__single_to_int(prg)
         no_answers = prg_choose_n(sorted(agent2exp_map.keys()),num_missing_answers,prg_,is_unique_picker=True) 
         for a in no_answers: agent2exp_map[a] = None 
