@@ -306,9 +306,8 @@ class ProofDifferentialSimulatorTypeXMethods(unittest.TestCase):
             S.append(round(s,5)) 
             prg0 = prg0_
 
-        assert S == [4.66667, 4.0, 4.66667, 5.0, 4.0, 10.0, \
-            4.8, 4.66667, 4.66667, 6.0, 5.0, 7.0, 5.33333, 4.0, \
-            4.66667], "got {}".format(S) 
+        assert S == [4.66667, 6.0, 4.75, 5.0, 4.8, 6.0, 4.0, \
+            4.66667, 5.0, 5.0, 5.33333, 4.66667, 4.8, 4.4, 4.8], "got {}".format(S) 
 
     """
     Demonstrates differences between path scores based on counter-probability. 
@@ -333,12 +332,11 @@ class ProofDifferentialSimulatorTypeXMethods(unittest.TestCase):
                 q = travel_path(deepcopy(subject_objective),x)
                 D[x].append(q) 
 
-        assert D ==  defaultdict(list, \
-            {0: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], \
-            0.25: [0, 0, 0, 2.5, 0, 7.33333, 0, 4.66667, 0, 6.0], \
-            0.5: [4.66667, 0, 4.66667, 2.0, 0, 9.0, 0, 0, 5.0, 0], \
-            0.75: [4.66667, 4.66667, 3.66667, 5.0, 4.0, 7.66667, 4.8, 4.66667, 4.66667, 6.0], \
-            1.0: [4.66667, 4.0, 4.66667, 5.0, 4.0, 8.66667, 4.8, 4.66667, 4.66667, 6.0]}), \
+        assert D ==  defaultdict(list, {0: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\
+            0.25: [4.66667, 0, 4.0, 5.0, 0, 6.0, 0, 0, 4.0, 0],\
+            0.5: [0, 6.0, 4.0, 5.0, 6.2, 3.5, 0, 4.66667, 5.0, 5.0],\
+            0.75: [4.66667, 6.0, 5.0, 5.0, 4.2, 6.0, 4.66667, 4.66667, 5.0, 5.0],\
+            1.0: [4.66667, 6.0, 7.0, 5.0, 4.8, 6.0, 3.66667, 4.66667, 5.0, 5.0]}),\
             "got {}".format(D) 
 
 if __name__ == '__main__':

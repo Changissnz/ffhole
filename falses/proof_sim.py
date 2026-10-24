@@ -3,7 +3,7 @@ from xFS_bots.graph_models.micrograph import *
 from morebs2.pr2label import * 
 from morebs2.numerical_generator import prg_decimal,modulo_in_range,safe_modulo_in_range,prg_choose_n
 from types import MethodType,FunctionType
-from math import ceil 
+from math import ceil,floor 
 
 """
 Objective Type (U)ndirected (S)imple (G)raph, (M)ultiple (P)aths. 
@@ -225,6 +225,7 @@ class ProofDifferentialSimulatorTypeSGT(ObjectiveTypeUSGMP):
         return NodePath.preload(P,E) 
 
     def next_node(self,current_node,ext_prg):  
+
         L = self.next_node_pr_seq(current_node)
         if type(L) == type(None): return None 
 
@@ -249,10 +250,6 @@ class ProofDifferentialSimulatorTypeSGT(ObjectiveTypeUSGMP):
 
     @staticmethod
     def generate_instance(G,start_node,num_soln): 
-
-    #def __init__(self,G,start_node,edge_cost_function,node_path_solution_seq): 
-
-
         return -1  
 
 """
@@ -466,9 +463,8 @@ class ProofDifferentialSimulatorTypeACSGT(ProofDifferentialSimulatorTypeCSGT):
         acorr_ = round(abs(acorr),10) 
         if acorr < 0: acorr = acorr_ * -1 
         else: acorr = acorr_ 
-        
-        pr = round(pr + acorr,10) 
 
+        pr = round(floor((pr + acorr) * 10 ** 5) / 10 **5,5)
         acorr_ = abs(acorr)
         self.current_ac_sum += acorr_ 
         self.cumulative_ac_sum += acorr_ 
