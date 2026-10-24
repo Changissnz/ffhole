@@ -25,7 +25,7 @@ class QuestionTypeSWPS:
         assert is_valid_range(node_path_soln_size_range,True,False) and node_path_soln_size_range[0] > 0 
         assert is_valid_range(max_num_path_corrections_range,True,False) and max_num_path_corrections_range[0] > 0 
         assert type(prg) in {MethodType,FunctionType}
-        assert is_valid_range(proof_simulation_output_space_range,False,False)
+        assert is_valid_range(proof_simulation_output_space_range,False,True)
 
         self.G = G 
         self.answer_set = answer_set
@@ -63,12 +63,19 @@ class QuestionTypeSWPS:
 
         for k,v in q.items():
             self.nodepair2paths[k].append(v)  
+
+        keys = sorted(self.nodepair2paths.keys()) 
+        for k in keys: 
+            k2 = (k[1],k[0])
+            if k2 not in self.nodepair2paths: 
+                for v in self.nodepair2paths[k]: 
+                    self.nodepair2paths[k2].append(v.invert()) 
         return 
 
     def update_soln(self): 
         return -1 
 
-    def choose_node_path_solution(self): 
+    def choose_node_path_solution(self,num_attempts=5): 
         i = modulo_in_range(int(self.prg()),self.node_path_soln_size_range)
 
         x = sorted(self.G.keys())
@@ -81,6 +88,11 @@ class QuestionTypeSWPS:
         k = prg_seqsort(sorted(q.keys()),self.prg)[:i] 
         paths = [] 
         for k_ in k: paths.extend(q[k_]) 
+
+        if len(paths) == 0: 
+            if num_attempts > 0: 
+                return self.choose_node_path_solution(num_attempts -1) 
+            assert False, "error retrieving solution paths"
 
         return start_node,paths  
 

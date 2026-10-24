@@ -70,6 +70,7 @@ class FalseQuestionAgentMethods(unittest.TestCase):
 
         pscore1 = 1 
         d1 = A9.decision_p(pf,pscore1) 
+        assert d1 == "accept" 
         assert A9.answer() == sender_ans
 
     def test__FQSubjectTypeDD__answer__case_1(self): 
@@ -85,6 +86,7 @@ class FalseQuestionAgentMethods(unittest.TestCase):
         fs = FQSubjectTypeDD.generate_instance(fas,default_ans,possible_answer_set,missing_answer_ratio,\
                 incorrect_answer_ratio,prg0)
 
+        # test out discrepancies between answers of Swarm Agents 5,7 and Subject 
         Q5 = set()
         for _ in range(100): 
             q = fs.answer(5)

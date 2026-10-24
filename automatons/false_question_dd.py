@@ -1,5 +1,17 @@
 from .false_question_agents import * 
 
+DEFAULT_FQDD_QUESTION_NODEPATH_SOLUTION_SIZE_RANGE = [2,8] 
+DEFAULT_FQDD_QUESTION_MAX_NUM_PATH_CORRECTION_RANGE = [2,8] 
+DEFAULT_FQDD_QUESTION_GRAPH_NODE_SIZE_RANGE = [22,61]
+DEFAULT_FQDD_QUESTION_GRAPH_EDGE_CONN_RANGE = [0.1,0.201]  
+
+DEFAULT_FQDD_SWARM_AGENT_MAX_ACTIONS_PER_ROUND_RANGE = [3,11] 
+DEFAULT_FQDD_SWARM_AGENT_LCG_DEGREE_RANGE = [3,7] 
+
+DEFAULT_FQDD_SUBJECT_MISSING_ANSWER_RATIO_RANGE = [0.1,0.5] 
+DEFAULT_FQDD_SUBJECT_INCORRECT_ANSWER_RATIO_RANGE = [0.1,0.5] 
+
+
 """
 False Question Type (D)elay and (D)ivert. 
 
@@ -354,3 +366,55 @@ class FalseQuestionTypeDD:
         self.fas.clear_counters() 
         self.fs.clear_counters() 
         return 
+
+    #------------------------------- auto-generation method 
+
+    @staticmethod 
+    def generate_instance(num_swarm_agents,num_answers,prg,verbose=True):  
+        # generate the graph for the question 
+        answer_set = {i for i in range(num_answers)}  
+
+        is_dsg = bool(int(prg()) % 2) 
+        is_realtime_gen = bool(int(prg()) % 2) 
+        vertex_degree = modulo_in_range(int(prg()),DEFAULT_FQDD_QUESTION_GRAPH_NODE_SIZE_RANGE)
+        edge_connectivity = modulo_in_range(int(prg()),DEFAULT_FQDD_QUESTION_GRAPH_EDGE_CONN_RANGE)
+
+        gg = GraphGen(is_dsg,prg,is_realtime_gen,\
+            vertex_degree,edge_connectivity)#,verbose=False)
+        gg.full_run() 
+        G = gg.d 
+        G = graph_to_one_component(G,prg) 
+
+        prg0 = prg_to_LCG_stack(prg,5,[add,sub]) 
+        Q = QuestionTypeSWPS(G,answer_set,\
+            deepcopy(DEFAULT_FQDD_QUESTION_NODEPATH_SOLUTION_SIZE_RANGE),\
+            deepcopy(DEFAULT_FQDD_QUESTION_MAX_NUM_PATH_CORRECTION_RANGE),\
+            prg0,start_node_for_paths=None) 
+
+        # generate the objective for the subject, based on the question 
+        start_node,node_path_soln = Q.choose_node_path_solution() 
+        subject_objective = ObjectiveTypeEFIT(G,start_node,node_path_soln)
+
+        # generate the swarm 
+        possible_answer_set = answer_set 
+        max_agent_actions_per_round = modulo_in_range(int(prg()),\
+            DEFAULT_FQDD_SWARM_AGENT_MAX_ACTIONS_PER_ROUND_RANGE) 
+        agent_prg_lcg_degree_range = [3,7] 
+        fas = FQAgentSwarm.generate_instance(num_swarm_agents,\
+            answer_set,max_agent_actions_per_round,prg,\
+            DEFAULT_FQDD_SWARM_AGENT_LCG_DEGREE_RANGE,\
+            edge_connectivity_range=DEFAULT_FQDD_QUESTION_GRAPH_EDGE_CONN_RANGE)
+
+        # generate the subject 
+        default_ans = int(prg()) % num_answers
+        missing_answer_ratio = round(modulo_in_range(prg(),\
+            DEFAULT_FQDD_SUBJECT_MISSING_ANSWER_RATIO_RANGE),5)
+        incorrect_answer_ratio = round(modulo_in_range(prg(),\
+            DEFAULT_FQDD_SUBJECT_INCORRECT_ANSWER_RATIO_RANGE),5)
+
+        S = FQSubjectTypeDD.generate_instance(fas,default_ans=default_ans,\
+            possible_answer_set=answer_set,missing_answer_ratio=missing_answer_ratio,\
+            incorrect_answer_ratio=incorrect_answer_ratio,prg=prg) 
+
+        # all variables for False Question Type DD ready to load 
+        return FalseQuestionTypeDD(Q,S,fas,subject_objective,verbose=verbose)
