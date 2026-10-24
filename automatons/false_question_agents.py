@@ -54,8 +54,7 @@ class FQSwarmAgent(FQAgent):
         self.received_answer = sender_ans 
 
         if is_sender_subject: 
-            if type(self.received_answer_from_subject) != type(None) and \
-                self.received_answer != self.received_answer_from_subject: 
+            if self.received_answer != self.current_answer: 
                 self.inconsistent_subject_answers += 1 
             self.received_answer_from_subject = sender_ans 
 
