@@ -1,8 +1,5 @@
-from falses.proof_sim import * 
-from morebs2.numerical_generator import prg__LCG
-from xFS_bots.graph_models.graph_gen import * 
-from xFS_bots.graph_models.shortest_paths import * 
 from xFS_bots.graph_models.bfs import * 
+from .sample_cases import * 
 import unittest
 
 def graph_and_paths_case_BASE(prg):
@@ -285,6 +282,64 @@ class ProofDifferentialSimulatorTypeXMethods(unittest.TestCase):
             prg0 = deepcopy(prg1) 
             QX |= {X[1]} 
         assert len(QX) == 1 
+
+    """
+    demonstrates variance in execution between different <ObjectiveTypeEFIT> 
+    instances using the same PRNGs. Counter-PR. set at 0.5. 
+    """
+    def test__ObjectiveTypeEFIT__exec__case_1(self): 
+        prg = prg__LCG(53.21,-577.5,1521.54,9767.7)
+        Q = sample_QuestionTypeSWPS__V22(prg) 
+
+        prg0 = prg__LCG(153.21,-65.5,521.54,3267.7)
+
+        S = [] 
+        for _ in range(15): 
+            start_node,node_path_soln = Q.choose_node_path_solution() 
+            subject_objective = ObjectiveTypeEFIT(Q.G,start_node,node_path_soln)
+
+            prg0_ = deepcopy(prg0)
+            while not subject_objective.fin_stat: 
+                subject_objective.exec(0.5,prg0) 
+
+            s = subject_objective.score_path(subject_objective.npath)
+            S.append(round(s,5)) 
+            prg0 = prg0_
+
+        assert S == [4.66667, 4.0, 4.66667, 5.0, 4.0, 10.0, \
+            4.8, 4.66667, 4.66667, 6.0, 5.0, 7.0, 5.33333, 4.0, \
+            4.66667], "got {}".format(S) 
+
+    """
+    Demonstrates differences between path scores based on counter-probability. 
+    """
+    def test__ObjectiveTypeEFIT__exec__case_2(self): 
+        prg = prg__LCG(53.21,-577.5,1521.54,9767.7)
+        Q = sample_QuestionTypeSWPS__V22(prg) 
+
+        prg0 = prg__LCG(153.21,-65.5,521.54,3267.7)
+
+        def travel_path(S,counter_pr): 
+            while not S.fin_stat: 
+                S.exec(counter_pr,prg0) 
+            return round(S.score_path(S.npath),5) 
+
+        D = defaultdict(list)
+        for _ in range(10): 
+            start_node,node_path_soln = Q.choose_node_path_solution() 
+            subject_objective = ObjectiveTypeEFIT(Q.G,start_node,node_path_soln)
+
+            for x in [0,0.25,0.5,0.75,1.0]:
+                q = travel_path(deepcopy(subject_objective),x)
+                D[x].append(q) 
+
+        assert D ==  defaultdict(list, \
+            {0: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], \
+            0.25: [0, 0, 0, 2.5, 0, 7.33333, 0, 4.66667, 0, 6.0], \
+            0.5: [4.66667, 0, 4.66667, 2.0, 0, 9.0, 0, 0, 5.0, 0], \
+            0.75: [4.66667, 4.66667, 3.66667, 5.0, 4.0, 7.66667, 4.8, 4.66667, 4.66667, 6.0], \
+            1.0: [4.66667, 4.0, 4.66667, 5.0, 4.0, 8.66667, 4.8, 4.66667, 4.66667, 6.0]}), \
+            "got {}".format(D) 
 
 if __name__ == '__main__':
     unittest.main()
