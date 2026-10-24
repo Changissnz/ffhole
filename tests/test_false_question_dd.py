@@ -35,7 +35,7 @@ class FalseQuestionTypeDDMethods(unittest.TestCase):
             pscores.append(round(fq_.cumulative_path_score,5)) 
             print("--------------------------")
 
-        assert pscores == [15.13333,9.66666,13.28571]
+        assert pscores == [15.13333,9.66667,13.28571], "got {}".format(pscores)
 
 if __name__ == '__main__':
     unittest.main()
