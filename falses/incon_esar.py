@@ -2,6 +2,9 @@ from .graph_node_labeller import *
 
 """
 Inconsistent Function Type (E)xpected (S)warm (A)gent (R)esponse. 
+
+Used as a system for answering individual agents, comprising a swarm, 
+on an arbitrary question. 
 """
 class InconsistentFunctionTypeESAR: 
 
@@ -12,9 +15,13 @@ class InconsistentFunctionTypeESAR:
         assert set(agent2recv_map.keys()).issubset(set(agent_relation_graph.keys()))
         assert type(prg) in {MethodType,FunctionType}
 
+        # singleton 
         self.default_ans = default_ans 
+        # agent idn -> expected answer by agent  
         self.agent2exp_map = agent2exp_map
+        # agent idn -> most recent answer received from agent  
         self.agent2recv_map = agent2recv_map
+        # defaultdict, graph 
         self.arg = agent_relation_graph
         self.prg = prg 
 
@@ -22,6 +29,12 @@ class InconsistentFunctionTypeESAR:
         self.inconsistency_count = defaultdict(int)
         return 
 
+    """
+    main method
+
+    Choose to answer agent `a_idn` with either expected or 
+    consistent (most recent) answer. 
+    """
     def answer(self,a_idn): 
         if a_idn not in self.agent2exp_map: 
             return self.default_ans 
@@ -34,6 +47,7 @@ class InconsistentFunctionTypeESAR:
         # choose expected 
         if d0 >= d1: 
             return self.agent2exp_map[a_idn] 
+        # choose consistent 
         return self.consistent_answer(a_idn) 
 
     def consistent_answer(self,a_idn): 

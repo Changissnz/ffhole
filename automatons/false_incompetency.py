@@ -21,14 +21,16 @@ Automaton that acts as an environment for the activity of two classes of agents:
      by the `demander`.
 
 The below procedure is used for False Incompetency. 
-- the `demander` demands every agent of `igroup` to demonstrate its actions over k 
+- the `demander` demands every agent of `igroup` to demonstrate its actions over m  
   iterations. 
 - `demander` receives a map with information on that demonstration, 
-    agent idn -> matrix of shape (2,k), 
+    agent idn -> matrix of shape (2,m), 
         [0] contradiction mode, {-1,0,1,2},
         [1] uncertainty towards observer (the `demander`), [0.,1.] 
-- `demander` predicts the subset of indices I of those k iterations would yield 
+- `demander` predicts the subset of indices I of those m iterations would yield 
    executive actions from `igroup` that output TRUE, by majority vote. 
+- `igroup` executes its actions over m iterations, and `demander` is supposed to 
+   select the subset of those iterations it predicts output TRUE. 
 
     **Demander objective** 
 Objective is for demander to select the executive actions A such that 
