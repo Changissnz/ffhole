@@ -7,6 +7,16 @@ DEFAULT_SECRET_DAG_MULTIPARENT_PR_RANGE = [0.0,0.82]
 DEFAULT_SECRET_DAG_INTRALAYER_CONN_RANGE = [0.0,0.55] 
 DEFAULT_SECRET_DAG_UNIFORM_DEPTH = True 
 
+"""
+Secret Space Type (D)irected (A)cyclic (G)raph. 
+
+Space consists of all paths from root to leaf nodes in 
+directed acyclic graph `dag`. Node path `P` is the 
+actual secret. 
+
+NOTE: program design is clearly not meant for cryptographically secure 
+      application, as is. 
+"""
 class SecretSpaceTypeDAG: 
 
     def __init__(self,dag:DAGraphContainer,p:NodePath):
