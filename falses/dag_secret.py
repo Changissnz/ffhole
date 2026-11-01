@@ -27,6 +27,9 @@ class SecretSpaceTypeDAG:
         self.P = p 
         return 
 
+    def secret_path_map(self,level):  
+        return -1 
+
     """
     generates a standard instance of <SecretSpaceTypeDAG>, using the 
     default values provided at the top. 

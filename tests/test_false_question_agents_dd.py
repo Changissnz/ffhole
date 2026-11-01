@@ -1,4 +1,4 @@
-from automatons.false_question_agents import * 
+from automatons.false_question_agents_dd import * 
 import unittest
 
 def sample_FQAgentSwarm__V20(prg): 
@@ -12,7 +12,7 @@ def sample_FQAgentSwarm__V20(prg):
         edge_connectivity_range=[0.1,0.3])
 
 """
-py -m tests.test_false_question_agents
+py -m tests.test_false_question_agents_dd
 """
 class FalseQuestionAgentMethods(unittest.TestCase):
 
@@ -27,23 +27,24 @@ class FalseQuestionAgentMethods(unittest.TestCase):
         sender_ans = 4 
 
         A9.recv_answer(sender_ans,is_sender_subject=True) 
-        assert A9.inconsistent_answers == 1 and A9.inconsistent_subject_answers == 0 
+        assert A9.inconsistent_answers == 1 and A9.inconsistent_subject_answers == 1, "got {},{}".format(\
+            A9.inconsistent_answers,A9.inconsistent_subject_answers)
         assert A9.dec0 == "proof"
         assert A9.received_answer_from_subject == sender_ans
         assert A9.answer() == 2 
 
         A9.recv_answer(sender_ans,is_sender_subject=True) 
-        assert A9.inconsistent_answers == 2 and A9.inconsistent_subject_answers == 0 
+        assert A9.inconsistent_answers == 2 and A9.inconsistent_subject_answers == 2 
         assert A9.dec0 == "proof"
 
         sender_ans2 = 3 
         A9.recv_answer(sender_ans2,is_sender_subject=True) 
-        assert A9.inconsistent_answers == 3 and A9.inconsistent_subject_answers == 1 
+        assert A9.inconsistent_answers == 3 and A9.inconsistent_subject_answers == 3 
         assert A9.dec0 == "proof"
 
         sender_ans3 = 1 
         A9.recv_answer(sender_ans3,is_sender_subject=False) 
-        assert A9.inconsistent_answers == 4 and A9.inconsistent_subject_answers == 1 
+        assert A9.inconsistent_answers == 4 and A9.inconsistent_subject_answers == 3 
         assert A9.dec0 == "proof"
 
         A9.error_term = 0.5 
