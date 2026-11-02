@@ -1,1 +1,3 @@
+morebs2>=0.1.112
+seqbuild>=0.0.76
 xFS-bots>=0.0.9
