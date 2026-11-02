@@ -2,7 +2,7 @@ from .dag_secret import *
 from seqbuild.intigers.mod_prng import * 
 
 """
-Traversal (D)irected (A)cyclic (G)raph Function Type (H)idden (S)tate (D)irected. 
+(D)irected (A)cyclic (G)raph Traversal Function Type (H)idden (S)tate (D)irected. 
 
 Uses a reference directed acyclic graph `dag` and a PRNG of type class<NoiseAddedIterableContainer> 
 from project<seqbuild> for decision-making. 
@@ -10,7 +10,7 @@ from project<seqbuild> for decision-making.
 A Bi-DAG operator, when given a `hidden_state_map` corresponding to `dag`, calculates the next 
 node n' XOR NULL from n; n,n' in `dag2`, another directed acyclic graph.
 """
-class TraversalDAGFunctionTypeHSD: 
+class DAGTraversalFunctionTypeHSD: 
 
     def __init__(self,dag:DAGraphContainer,prng_struct:NoiseAddedIterableContainer):
         assert type(dag) == DAGraphContainer
