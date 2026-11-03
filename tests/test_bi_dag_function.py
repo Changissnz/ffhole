@@ -48,6 +48,9 @@ class DAGTraversalFunctionTypeHSDMethods(unittest.TestCase):
             assert x2 == result2, "got {}".format(x2) 
         return 
 
+    """
+    demonstrates variance of NEXT node over different DAG inputs. 
+    """
     def test__DAGTraversalFunctionTypeHSD__next_from_node__case_2(self): 
 
         prg = prg__LCG(735.78,-1414.141,55.62,7143.61)
