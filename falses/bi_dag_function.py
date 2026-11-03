@@ -21,7 +21,6 @@ class DAGTraversalFunctionTypeHSD:
 
         self.dag = dag 
         self.prng_struct = None 
-
         self.load_prng_struct(prng_struct)
 
     def load_prng_struct(self,prng_struct:NoiseAddedIterableContainer): 
@@ -29,7 +28,6 @@ class DAGTraversalFunctionTypeHSD:
         self.prng_struct = prng_struct
         self.prng_struct.started = True 
         self.prng_struct.reset(reset_index=True,v=None)
-
 
     """
     main method #1 
@@ -78,9 +76,71 @@ State Induction Type (M)ost (F)requent (U)nless (C)ertain.
 """
 class StateInductionTypeMFUC: 
 
-    def __init__(self):
+    def __init__(self,category_set:set,initial_hs_hyp:defaultdict=defaultdict(set)): 
+        assert type(category_set) == set 
+        assert type(initial_hs_hyp) == defaultdict 
+        assert set(initial_hs_hyp.keys()).issubset(category_set) 
 
+        self.category_set = category_set
+        self.current_hyp = initial_hs_hyp
 
-        return -1 
+        # state -> category -> frequency 
+        self.fmap = defaultdict(dict) 
 
-    def 
+        # state -> ?is certain of current hypothesis on label? 
+        self.s2c_map = {c:False for c in category_set}
+        return 
+
+    def update_certainty(self,s2c_map): 
+        assert type(s2c_map) == dict 
+        assert set(s2c_map.keys()).issubset(self.category_set)
+
+        for k,v in s2c_map.items(): 
+            assert type(v) == bool 
+            self.s2c_map[k] = v 
+        return 
+
+    def set_certain_category(self,c,l):
+        assert c in self.category_set
+        assert type(l) != type(None) 
+
+        self.s2c_map[c] = True 
+        self.current_hyp[c] = l  
+        return 
+
+    def max_label_for_category(self,c): 
+        assert c in self.category_set
+
+        if c not in self.fmap: 
+            return None 
+
+        d = self.fmap[c] 
+        if len(d) == 0: return None 
+
+        l2v = [(k,v) for k,v in d.items()] 
+        l2v = sorted(l2v,key=lambda x:x[1]) 
+        return l2v[-1][0] 
+
+    def add_frequencies_to_category(self,c,f:dict): 
+        assert c in self.category_set
+        assert type(f) == dict 
+
+        if c not in self.fmap: 
+            self.fmap[c] = defaultdict(int) 
+
+        for k,v in f.items(): 
+            assert type(v) == int and v >= 0 
+            self.fmap[c][k] += v 
+        return 
+
+    def update_induction(self): 
+        rem_cats = self.category_set - set(self.s2c_map.keys()) 
+
+        for c in rem_cats: 
+            q = self.max_label_for_category(c)
+            if type(q) != type(None): 
+                self.current_hyp[c] = q 
+        return 
+
+    def state_induction(self): 
+        return deepcopy(self.current_hyp)

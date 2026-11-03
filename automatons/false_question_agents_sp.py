@@ -15,7 +15,7 @@ class FQQuestionerTypeSP:
         assert type(prg) in {MethodType,FunctionType}
 
         # used for hypotheses on subject's activity 
-        self.act_hyp = HypothesisContainerTypeGP()
+        self.act_hyp = HypothesisContainerTypeGP() 
 
         # used for Hidden State hypotheses
         self.hs_hyp_mach = StateInductionTypeMFUC(category_set)
