@@ -76,20 +76,26 @@ State Induction Type (M)ost (F)requent (U)nless (C)ertain.
 """
 class StateInductionTypeMFUC: 
 
-    def __init__(self,category_set:set,initial_hs_hyp:defaultdict=defaultdict(set)): 
-        assert type(category_set) == set 
+    def __init__(self,state_set:set,initial_hs_hyp:defaultdict=defaultdict(set)): 
+        assert type(state_set) == set 
         assert type(initial_hs_hyp) == defaultdict 
         assert set(initial_hs_hyp.keys()).issubset(category_set) 
 
-        self.category_set = category_set
+        self.state_set = state_set
         self.current_hyp = initial_hs_hyp
 
-        # state -> category -> frequency 
+        # state -> label -> frequency 
         self.fmap = defaultdict(dict) 
 
         # state -> ?is certain of current hypothesis on label? 
-        self.s2c_map = {c:False for c in category_set}
+        self.s2c_map = {c:False for c in state_set}
         return 
+
+    def sorted_uncertain_states(self): 
+        return -1 
+
+    def uncertain_states(self): 
+        return -1 
 
     def update_certainty(self,s2c_map): 
         assert type(s2c_map) == dict 
