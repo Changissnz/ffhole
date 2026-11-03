@@ -1,5 +1,6 @@
 from .dag_secret import * 
 from seqbuild.intigers.mod_prng import * 
+from morebs2.numerical_generator import prg_safe_uniform_partition_sequence
 
 """
 (D)irected (A)cyclic (G)raph Traversal Function Type (H)idden (S)tate (D)irected. 
@@ -48,7 +49,7 @@ class DAGTraversalFunctionTypeHSD:
         node2int_map = dict() 
         for l in levels: 
             l_nodeset = sorted(self.dag.l2n_map[l]) 
-            prt = prg_uniform_partition_sequence(l_nodeset,len(C),prg)
+            prt = prg_safe_uniform_partition_sequence(l_nodeset,len(C),prg,distribute_remainder_evenly=True)
 
             for (i,p) in enumerate(prt): 
                 for p_ in p: 
