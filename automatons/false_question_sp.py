@@ -15,4 +15,7 @@ class FalseQuestionTypeSP:
 
     def __next__(self): 
 
+        # have `Q` predict the next node that `subject` travels to, for 
+        # every one of its hypotheses. 
+
         return -1  

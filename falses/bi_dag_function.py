@@ -6,7 +6,10 @@ from morebs2.numerical_generator import prg_safe_uniform_partition_sequence
 (D)irected (A)cyclic (G)raph Traversal Function Type (H)idden (S)tate (D)irected. 
 
 Uses a reference directed acyclic graph `dag` and a PRNG of type class<NoiseAddedIterableContainer> 
-from project<seqbuild> for decision-making. 
+from project<seqbuild> for decision-making. This PRNG, by its design + usage, will always output 
+the same number sequence for any node `n`, so that the method<next_from_node> is guaranteed to 
+be consistent in output: output for `n` at any two different instances of usage output the same 
+next node. 
 
 A Bi-DAG operator, when given a `hidden_state_map` corresponding to `dag`, calculates the next 
 node n' XOR NULL from n; n,n' in `dag2`, another directed acyclic graph.
@@ -15,12 +18,18 @@ class DAGTraversalFunctionTypeHSD:
 
     def __init__(self,dag:DAGraphContainer,prng_struct:NoiseAddedIterableContainer):
         assert type(dag) == DAGraphContainer
-        assert type(prng_struct) == NoiseAddedIterableContainer
 
         self.dag = dag 
+        self.prng_struct = None 
+
+        self.load_prng_struct(prng_struct)
+
+    def load_prng_struct(self,prng_struct:NoiseAddedIterableContainer): 
+        assert type(prng_struct) == NoiseAddedIterableContainer
         self.prng_struct = prng_struct
         self.prng_struct.started = True 
         self.prng_struct.reset(reset_index=True,v=None)
+
 
     """
     main method #1 
@@ -69,5 +78,9 @@ State Induction Type (M)ost (F)requent (U)nless (C)ertain.
 """
 class StateInductionTypeMFUC: 
 
-    def __init__(self): 
+    def __init__(self):
+
+
         return -1 
+
+    def 

@@ -30,7 +30,7 @@ class DAGTraversalFunctionTypeHSDMethods(unittest.TestCase):
         n = 113  
         result = 89 
         C = dag2.children_of_node(n)    
-        assert 89 in C 
+        assert 89 in C and len(C) == 1 
         for _ in range(20): 
             x = df.next_from_node(hs_map,dag2,n)
             assert x == result 
