@@ -1,6 +1,106 @@
 from .dag_secret import * 
 from seqbuild.intigers.mod_prng import * 
-from morebs2.numerical_generator import prg_safe_uniform_partition_sequence
+from morebs2.numerical_generator import prg_safe_uniform_partition_sequence,prg__constant 
+
+
+#----------------------------------------- variables + functions used for <ffhole>'s 
+# defined Action Graph, directed acyclic graphs extended with linear threshold functions 
+# assigned to each node. Action Graphs constitute the first half of Bi-DAG intra-actions. 
+
+DEFAULT_ACTION_DAG_NUM_LAYERS_RANGE = [54,151]
+DEFAULT_ACTION_DAG_NUM_NODE_RANGE_PER_LAYER = [6,13] 
+
+DEFAULT_ACTION_DAG_NUM_VARS_RATIO_RANGE = [0.2,0.85] 
+DEFAULT_ACTION_DAG_NODE_WEIGHT_RANGE = [1.0,113.0]
+
+DEFAULT_ACTION_DAG_PRNG_CYCLE_LENGTH_RANGE = [12,24] 
+
+"""
+uses a PRNG to generate a weight function, `wfunc`, for use with class<ExtendedDAGTypeLTPN>. 
+"""
+def node_to_weight_vector_function__type_NAIC(prg,cycle_length,weight_range,n2vsize_map:dict): 
+
+    assert type(cycle_length) == int and cycle_length > 1 
+    assert is_valid_range(weight_range,True,True) or is_valid_range(weight_range,False,True)
+    assert weight_range[0] > 0 
+
+    C = prg__single_to_nvec(prg,cycle_length)() 
+
+    X = NoiseAddedIterableContainer(C,v=None) 
+    X.started = True 
+    ##prg_ = wrap_ranged_modulo_over_generator(prg,r)
+
+    def f(n):  
+        assert n in n2vsize_map 
+        sz = n2vsize_map[n] 
+
+        X.reset(reset_index=True,v=n) 
+
+        return prg__single_to_nvec(X.__next__,sz)()
+
+    return f  
+
+"""
+uses a PRNG to generate a variable subset function, `vfunc`, for use with class<ExtendedDAGTypeLTPN>. 
+"""
+def node_to_variable_subset_function__type_NAIC(prg,varset,subset_size_ratio_range,cycle_length): 
+    assert type(varset) == set and len(varset) > 1 
+    assert is_valid_range(subset_size_ratio_range,False,True) 
+    
+    varseq = sorted(varset) 
+    C = prg__single_to_nvec(prg,cycle_length)() 
+
+    X = NoiseAddedIterableContainer(C,v=None) 
+    X.started = True 
+
+    def f(n): 
+        X.reset(reset_index=True,v=n) 
+
+        d0 = next(X) 
+        d1 = next(X) 
+        r = safe_modulo_in_range(zero_div(d0,d1,0.5),subset_size_ratio_range) 
+
+        sz = ceil(len(varseq) * r)
+
+        varset_ = prg_choose_n(deepcopy(varseq),sz,X.__next__,is_unique_picker=True)
+        return varset_ 
+
+    return f 
+
+"""
+uses the global variables at the beginning of this file, as default parameters to 
+generate an Action Graph, of type class<ExtendedDAGTypeLTPN>. 
+"""
+def generate_std_action_DAG(prg,varset,num_layers_range=DEFAULT_ACTION_DAG_NUM_LAYERS_RANGE,\
+    num_nodes_per_layer_range=DEFAULT_ACTION_DAG_NUM_NODE_RANGE_PER_LAYER): 
+
+    assert type(varset) == set and len(varset) > 1 
+
+    dag = SecretSpaceTypeDAG.generate_std_instance(prg,output_is_generator=False,\
+        num_layers_range=num_layers_range,num_nodes_per_layer_range=num_nodes_per_layer_range)
+
+    nodeseq = sorted(dag.G.keys())
+
+    cycle_length = modulo_in_range(int(prg()),DEFAULT_ACTION_DAG_PRNG_CYCLE_LENGTH_RANGE)
+
+    vfunc = node_to_variable_subset_function__type_NAIC(prg,varset,DEFAULT_ACTION_DAG_NUM_VARS_RATIO_RANGE,\
+        cycle_length)
+
+    n2vsize_map = dict() 
+    for k in dag.G.keys(): 
+        n2vsize_map[k] = len(vfunc(k)) 
+
+    cycle_length2 = modulo_in_range(int(prg()),DEFAULT_ACTION_DAG_PRNG_CYCLE_LENGTH_RANGE)
+    wfunc = node_to_weight_vector_function__type_NAIC(prg,cycle_length2,\
+        weight_range=DEFAULT_ACTION_DAG_NODE_WEIGHT_RANGE,n2vsize_map=n2vsize_map) 
+
+    def tfunc(n):
+        return prg__constant(0.5) 
+
+    return ExtendedDAGTypeLTPN(dag.G,dag.l2n_map,vfunc,wfunc,tfunc,check_input_graph=False)
+
+
+#----------------------- the second half (hidden-state) of Bi-DAG intra-actions. 
 
 """
 (D)irected (A)cyclic (G)raph Traversal Function Type (H)idden (S)tate (D)irected. 
@@ -70,6 +170,9 @@ class DAGTraversalFunctionTypeHSD:
 
         index = s % len(C) 
         return sorted(C)[index]
+
+#----------------------------------------- a hypothesis structure used by observers of Bi-DAG 
+# activity, in order to induce its hidden state. 
 
 """
 State Induction Type (M)ost (F)requent (U)nless (C)ertain. 

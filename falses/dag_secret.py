@@ -67,13 +67,18 @@ class SecretSpaceTypeDAG:
         return SecretSpaceTypeDAG(dag,P) 
 
     @staticmethod 
-    def generate_std_DAG(prg,output_is_generator:bool=False): 
+    def generate_std_DAG(prg,output_is_generator:bool=False,\
+        num_layers_range=DEFAULT_SECRET_DAG_NUM_LAYERS_RANGE,\
+        num_nodes_per_layer_range=DEFAULT_SECRET_DAG_NUM_NODE_RANGE_PER_LAYER,\
+        multiparent_pr_range=DEFAULT_SECRET_DAG_MULTIPARENT_PR_RANGE,\
+        intralayer_conn_range=DEFAULT_SECRET_DAG_INTRALAYER_CONN_RANGE,\
+        uniform_depth=DEFAULT_SECRET_DAG_UNIFORM_DEPTH):
 
-        num_layers = modulo_in_range(int(prg()),DEFAULT_SECRET_DAG_NUM_LAYERS_RANGE)
+        num_layers = modulo_in_range(int(prg()),num_layers_range)
 
-        D = DAGraphGen(DEFAULT_SECRET_DAG_NUM_NODE_RANGE_PER_LAYER,DEFAULT_SECRET_DAG_GEN_SCHEME,\
-        DEFAULT_SECRET_DAG_MULTIPARENT_PR_RANGE,DEFAULT_SECRET_DAG_INTRALAYER_CONN_RANGE,\
-        prg,DEFAULT_SECRET_DAG_UNIFORM_DEPTH)
+        D = DAGraphGen(num_nodes_per_layer_range,DEFAULT_SECRET_DAG_GEN_SCHEME,\
+        multiparent_pr_range,intralayer_conn_range,\
+        prg,uniform_depth)
 
         for _ in range(num_layers): 
             next(D)
