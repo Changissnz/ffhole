@@ -1,4 +1,4 @@
-from xFS_bots.graph_models.dag_gen import * 
+from xFS_bots.graph_models.extended_dag import * 
 
 DEFAULT_SECRET_DAG_NUM_LAYERS_RANGE = [10,25]
 DEFAULT_SECRET_DAG_NUM_NODE_RANGE_PER_LAYER = [5,11] 

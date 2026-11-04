@@ -1,6 +1,8 @@
 from .dag_secret import * 
 from seqbuild.intigers.mod_prng import * 
-from morebs2.numerical_generator import prg_safe_uniform_partition_sequence,prg__constant 
+from morebs2.numerical_generator import prg_safe_uniform_partition_sequence,\
+    prg__constant,prg__single_to_nvec
+from morebs2.measures import zero_div
 
 
 #----------------------------------------- variables + functions used for <ffhole>'s 
@@ -26,9 +28,8 @@ def node_to_weight_vector_function__type_NAIC(prg,cycle_length,weight_range,n2vs
 
     C = prg__single_to_nvec(prg,cycle_length)() 
 
-    X = NoiseAddedIterableContainer(C,v=None) 
+    X = NoiseAddedIterableContainer(list(C),v=None) 
     X.started = True 
-    ##prg_ = wrap_ranged_modulo_over_generator(prg,r)
 
     def f(n):  
         assert n in n2vsize_map 
@@ -50,7 +51,7 @@ def node_to_variable_subset_function__type_NAIC(prg,varset,subset_size_ratio_ran
     varseq = sorted(varset) 
     C = prg__single_to_nvec(prg,cycle_length)() 
 
-    X = NoiseAddedIterableContainer(C,v=None) 
+    X = NoiseAddedIterableContainer(list(C),v=None) 
     X.started = True 
 
     def f(n): 
@@ -62,43 +63,116 @@ def node_to_variable_subset_function__type_NAIC(prg,varset,subset_size_ratio_ran
 
         sz = ceil(len(varseq) * r)
 
-        varset_ = prg_choose_n(deepcopy(varseq),sz,X.__next__,is_unique_picker=True)
+        prg_ = prg__single_to_int(X.__next__)
+        varset_ = prg_choose_n(deepcopy(varseq),sz,prg_,is_unique_picker=True)
         return varset_ 
 
     return f 
 
 """
-uses the global variables at the beginning of this file, as default parameters to 
-generate an Action Graph, of type class<ExtendedDAGTypeLTPN>. 
+Action Graph Type (D)irected (A)cyclic (G)raph with (Linear) (T)hreshold (A)ctivation. 
+
+Acts as a surface by which "actions" can take place on. Actions are typically 
+- traversing from node to node, starting from layer 0 up through the last layer (leaf layer), 
+- boolean activations, given that parameter input of index-to-boolean map M satisfies node 
+  features (linear combination). Map M typically is the node selection of another DAG. 
+
+NOTE: see file<graph_models.extended_dag> from project<xFS-bots> for more information on 
+      the linear threshold activation. 
+
+To summarize, every node of DAG is assigned a subset of variables v' in superset of variables 
+V. This subset of variables v' is associated with a weight vector w, typically with 
+non-negative values, and a threshold value t in [0.,1.] such that 
+    w * F(v') >= t * sum(w). 
+
+Function F, w.r.t. <ActionGraphTypeDAGLT> goes as such: 
+    - to calculate the index-to-boolean map M, the term "index" synonymous with 
+      "state" in this context, 
+    
+    for every variable v_ in v', 
+        if `s2l_map`[v_] is equal to `s2l_map_`[v_], then 
+        M[v_] is True, otherwise M[v_] is False. 
+
+Then w * F(v') is the product between a float vector and a boolean vector. 
+
+NOTE: assumes `vfunc`, `wfunc`, and `tfunc` are consistent functions. 
+
+------------------------------------------------------------------------ 
+
+G := defaultdict, the DAG.
+l2n_map := dict, level-to-nodeset map for `G`. 
+s2l_map := dict, state-to-labelset map for another DAG ("labelset" synonymous with "nodeset"). 
+vfunc := function, F(node), node in G. 
+wfunc := function, F(node), node in G. 
+tfunc := function, F(node), node in G. 
 """
-def generate_std_action_DAG(prg,varset,num_layers_range=DEFAULT_ACTION_DAG_NUM_LAYERS_RANGE,\
-    num_nodes_per_layer_range=DEFAULT_ACTION_DAG_NUM_NODE_RANGE_PER_LAYER): 
+class ActionGraphTypeDAGLT(ExtendedDAGTypeLTPN): 
 
-    assert type(varset) == set and len(varset) > 1 
+    def __init__(self,G,l2n_map,s2l_map,vfunc,wfunc,tfunc,check_input_graph:bool=True):
+        super().__init__(G,l2n_map,vfunc,wfunc,tfunc,check_input_graph)
+        assert type(s2l_map) == dict 
+        for v in s2l_map.values(): assert type(v) == set 
 
-    dag = SecretSpaceTypeDAG.generate_std_instance(prg,output_is_generator=False,\
-        num_layers_range=num_layers_range,num_nodes_per_layer_range=num_nodes_per_layer_range)
+        self.s2l_map = s2l_map
+        self.loc = None 
+        return 
 
-    nodeseq = sorted(dag.G.keys())
+    def set_agent_loc(self,l): 
+        assert l in G
+        self.loc = l 
+        return 
 
-    cycle_length = modulo_in_range(int(prg()),DEFAULT_ACTION_DAG_PRNG_CYCLE_LENGTH_RANGE)
+    def boolean_output(self,n,s2l_map_): 
+        indices = self.vfunc(n) 
+        assert len(indices) == len(set(indices)) 
+        assert set(indices).issubset(set(self.s2l_map.keys())) 
 
-    vfunc = node_to_variable_subset_function__type_NAIC(prg,varset,DEFAULT_ACTION_DAG_NUM_VARS_RATIO_RANGE,\
-        cycle_length)
+        s2l_map = {i:self.s2l_map[i] for i in indices} 
+        s2bool_map = dict() 
 
-    n2vsize_map = dict() 
-    for k in dag.G.keys(): 
-        n2vsize_map[k] = len(vfunc(k)) 
+        for k,v in s2l_map(): 
+            # case: input map does not have label info. for state;  
+            #       assume negative. 
+            if k not in s2l_map_: 
+                s2bool_map[k] = False 
+                continue 
+            
+            s2bool_map[k] = (v == s2l_map_[k]) 
+        
+        return super().boolean_output(n,s2bool_map) 
 
-    cycle_length2 = modulo_in_range(int(prg()),DEFAULT_ACTION_DAG_PRNG_CYCLE_LENGTH_RANGE)
-    wfunc = node_to_weight_vector_function__type_NAIC(prg,cycle_length2,\
-        weight_range=DEFAULT_ACTION_DAG_NODE_WEIGHT_RANGE,n2vsize_map=n2vsize_map) 
+    """
+    uses the global variables at the beginning of this file, as default parameters to 
+    generate an Action Graph, subclass of class<ExtendedDAGTypeLTPN>. 
+    """
+    @staticmethod 
+    def generate_std_ActionGraphTypeDAGLT(prg,s2l_map,num_layers_range=DEFAULT_ACTION_DAG_NUM_LAYERS_RANGE,\
+        num_nodes_per_layer_range=DEFAULT_ACTION_DAG_NUM_NODE_RANGE_PER_LAYER): 
 
-    def tfunc(n):
-        return prg__constant(0.5) 
+        assert type(s2l_map) == dict and len(s2l_map) > 1 
 
-    return ExtendedDAGTypeLTPN(dag.G,dag.l2n_map,vfunc,wfunc,tfunc,check_input_graph=False)
+        dag = SecretSpaceTypeDAG.generate_std_DAG(prg,output_is_generator=False,\
+            num_layers_range=num_layers_range,num_nodes_per_layer_range=num_nodes_per_layer_range)
 
+        nodeseq = sorted(dag.G.keys())
+
+        cycle_length = modulo_in_range(int(prg()),DEFAULT_ACTION_DAG_PRNG_CYCLE_LENGTH_RANGE)
+
+        vfunc = node_to_variable_subset_function__type_NAIC(prg,set(s2l_map.keys()),\
+            DEFAULT_ACTION_DAG_NUM_VARS_RATIO_RANGE,cycle_length)
+
+        n2vsize_map = dict() 
+        for k in dag.G.keys(): 
+            n2vsize_map[k] = len(vfunc(k)) 
+
+        cycle_length2 = modulo_in_range(int(prg()),DEFAULT_ACTION_DAG_PRNG_CYCLE_LENGTH_RANGE)
+        wfunc = node_to_weight_vector_function__type_NAIC(prg,cycle_length2,\
+            weight_range=DEFAULT_ACTION_DAG_NODE_WEIGHT_RANGE,n2vsize_map=n2vsize_map) 
+
+        def tfunc(n):
+            return prg__constant(0.5) 
+
+        return (dag.G,dag.l2n_map,vfunc,wfunc,tfunc,check_input_graph=False)
 
 #----------------------- the second half (hidden-state) of Bi-DAG intra-actions. 
 
