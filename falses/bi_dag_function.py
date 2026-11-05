@@ -1,7 +1,7 @@
 from .dag_secret import * 
 from seqbuild.intigers.mod_prng import * 
 from morebs2.numerical_generator import prg_safe_uniform_partition_sequence,\
-    prg__constant,prg__single_to_nvec
+    prg__constant,prg__single_to_nvec,wrap_ranged_modulo_over_generator
 from morebs2.measures import zero_div
 
 
@@ -37,7 +37,8 @@ def node_to_weight_vector_function__type_NAIC(prg,cycle_length,weight_range,n2vs
 
         X.reset(reset_index=True,v=n) 
 
-        return prg__single_to_nvec(X.__next__,sz)()
+        prg_ = wrap_ranged_modulo_over_generator(X.__next__,weight_range)
+        return np.round(prg__single_to_nvec(prg_,sz)(),5) 
 
     return f  
 
@@ -130,16 +131,16 @@ class ActionGraphTypeDAGLT(ExtendedDAGTypeLTPN):
         s2l_map = {i:self.s2l_map[i] for i in indices} 
         s2bool_map = dict() 
 
-        for k,v in s2l_map(): 
+        for k,v in s2l_map.items(): 
             # case: input map does not have label info. for state;  
             #       assume negative. 
             if k not in s2l_map_: 
                 s2bool_map[k] = False 
                 continue 
-            
+
             s2bool_map[k] = (v == s2l_map_[k]) 
-        
-        return super().boolean_output(n,s2bool_map) 
+
+        return bool(super().boolean_output(n,s2bool_map)) 
 
     """
     uses the global variables at the beginning of this file, as default parameters to 
@@ -169,10 +170,12 @@ class ActionGraphTypeDAGLT(ExtendedDAGTypeLTPN):
         wfunc = node_to_weight_vector_function__type_NAIC(prg,cycle_length2,\
             weight_range=DEFAULT_ACTION_DAG_NODE_WEIGHT_RANGE,n2vsize_map=n2vsize_map) 
 
+        tfunc_ = prg__constant(0.5) 
         def tfunc(n):
-            return prg__constant(0.5) 
+            return tfunc_()
 
-        return (dag.G,dag.l2n_map,vfunc,wfunc,tfunc,check_input_graph=False)
+        return ActionGraphTypeDAGLT(dag.G,dag.l2n_map,s2l_map,vfunc,wfunc,tfunc,\
+            check_input_graph=False)
 
 #----------------------- the second half (hidden-state) of Bi-DAG intra-actions. 
 

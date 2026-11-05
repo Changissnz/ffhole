@@ -45,8 +45,11 @@ class SecretSpaceTypeDAG:
         self.P = p 
         return 
 
-    def secret_path_map(self,level):  
-        return -1 
+    def secret_path_map(self): 
+        return nodepath_to_s2l_map(self.dag,self.P)
+
+    def n_paths_with_node(self,node,num_paths,prg=None): 
+        return self.dag.n_paths_with_node(node,num_paths,False,prg)
 
     """
     generates a standard instance of <SecretSpaceTypeDAG>, using the 
