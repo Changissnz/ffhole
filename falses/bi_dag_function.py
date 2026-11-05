@@ -148,9 +148,12 @@ class ActionGraphTypeDAGLT(ExtendedDAGTypeLTPN):
     """
     @staticmethod 
     def generate_std_ActionGraphTypeDAGLT(prg,s2l_map,num_layers_range=DEFAULT_ACTION_DAG_NUM_LAYERS_RANGE,\
-        num_nodes_per_layer_range=DEFAULT_ACTION_DAG_NUM_NODE_RANGE_PER_LAYER): 
+        num_nodes_per_layer_range=DEFAULT_ACTION_DAG_NUM_NODE_RANGE_PER_LAYER,threshold_constant=0.5): 
 
         assert type(s2l_map) == dict and len(s2l_map) > 1 
+        assert is_valid_range(num_layers_range,True,False) and num_layers_range[0] > 0 
+        assert is_valid_range(num_nodes_per_layer_range,True,False) and num_nodes_per_layer_range[0] > 0 
+        assert 0. <= threshold_constant <= 1. 
 
         dag = SecretSpaceTypeDAG.generate_std_DAG(prg,output_is_generator=False,\
             num_layers_range=num_layers_range,num_nodes_per_layer_range=num_nodes_per_layer_range)
@@ -170,7 +173,7 @@ class ActionGraphTypeDAGLT(ExtendedDAGTypeLTPN):
         wfunc = node_to_weight_vector_function__type_NAIC(prg,cycle_length2,\
             weight_range=DEFAULT_ACTION_DAG_NODE_WEIGHT_RANGE,n2vsize_map=n2vsize_map) 
 
-        tfunc_ = prg__constant(0.5) 
+        tfunc_ = prg__constant(threshold_constant) 
         def tfunc(n):
             return tfunc_()
 

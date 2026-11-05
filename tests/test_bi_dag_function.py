@@ -160,5 +160,24 @@ class ActionGraphTypeDAGLTMethods(unittest.TestCase):
         assert D == defaultdict(int,{False:201}) 
         assert sum(D.values()) == len(V) * 3 
 
+    """
+    demonstrates < 1% rate of Trues for 600-700 state-to-label maps. 
+    """
+    def test__ActionGraphTypeDAGLT__boolean_output__case_3(self): 
+
+        A,S,prg = sample_ActionGraphANDSecretSpace__FIRST() 
+
+        V = prg_seqsort(sorted(S.dag.G.keys()),prg) 
+        D = defaultdict(int)
+
+        for v in V: 
+            p = S.n_paths_with_node(v,10)
+            for p_ in p: 
+
+                pmap = nodepath_to_s2l_map(S.dag,p_) 
+                D[A.boolean_output(45,pmap)] += 1 
+
+        assert D == defaultdict(int,{False: 664, True: 6}) 
+
 if __name__ == '__main__':
     unittest.main()
