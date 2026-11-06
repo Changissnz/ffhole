@@ -1,4 +1,5 @@
 from xFS_bots.graph_models.extended_dag import * 
+from morebs2.numerical_generator import prg_seqsort_ties
 
 DEFAULT_SECRET_DAG_NUM_LAYERS_RANGE = [10,25]
 DEFAULT_SECRET_DAG_NUM_NODE_RANGE_PER_LAYER = [5,11] 
@@ -24,6 +25,66 @@ def nodepath_to_s2l_map(dag,p:NodePath):
         assert False 
 
     return {k:set(v) for k,v in D2.items()} 
+
+"""
+generates a state-to-labelset hypothesis map. Generation attempts 
+to assign the closest number of correct label sets, as per `correct_ratio`, 
+for the states. 
+
+This partitioning of correct and incorrect label sets is dependent on the 
+number of single-node layers of the DAG. 
+
+NOTE: single-node DAG layers are strongly advised against for applications 
+      such as traversal prediction. 
+"""
+def generate_s2l_hyp_map(dag,actual_s2l_map,correct_ratio,prg): 
+
+    def alt_labelset(state):  
+
+        S = dag.intrasets_of_layer(state)
+        S = prg_seqsort_ties(S,prg,vf=lambda x: len(x - actual_s2l_map[state]))
+        q = S[-1] 
+        q_ = q - actual_s2l_map[state]
+        if len(q_) > 0: 
+            q = q_ 
+
+        q2 = sorted(q) 
+        i = int(prg()) % len(q2) 
+        return {q2[i]}
+
+    num_correct = ceil(len(dag.l2n_map.items()) * correct_ratio)
+
+    # get set of levels of `dag` that have only one node: 
+    # predictions on those levels will always be correct. 
+    l1 = set() 
+    for k,v in dag.l2n_map.items(): 
+        if len(v) < 2: l1 |= {k} 
+
+    l2 = set(dag.l2n_map.keys()) - l1 
+
+    s2l_map = dict()
+    for k in l1: 
+        s2l_map[k] = deepcopy(dag.l2n_map[k])
+
+    # case: number of levels with single node is @ least correct ratio. 
+    if len(l1) >= num_correct: 
+        rem = set(dag.l2n_map.keys()) - l1 
+    else: 
+        l2_ = prg_seqsort(sorted(l2),prg) 
+        d = num_correct - len(l1) 
+
+        for i in range(d): 
+            k = l2_[i]
+            s2l_map[k] = deepcopy(actual_s2l_map[k])
+        rem = l2_[d:] 
+
+    if len(rem) == 0: 
+        return s2l_map
+
+    rem = prg_seqsort(sorted(rem),prg) 
+    for r in rem: 
+        s2l_map[r] = alt_labelset(r)
+    return s2l_map
 
 """
 Secret Space Type (D)irected (A)cyclic (G)raph. 

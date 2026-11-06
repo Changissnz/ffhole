@@ -1,12 +1,13 @@
 from .false_question_agents_sp import * 
-
+from morebs2.numerical_generator import prg_to_LCG_stack
+from operator import sub 
 
 class FalseQuestionTypeSP: 
 
-    def __init__(self,Q:FQQuestionerTypeSP,subject:FQSubjectTypeSP,action_graph:DAGraphContainer): 
+    def __init__(self,Q:FQQuestionerTypeSP,subject:FQSubjectTypeSP,action_graph:ActionGraphTypeDAGLT): 
         assert type(Q) == FQQuestionerTypeSP
         assert type(subject) == FQSubjectTypeSP
-        assert type(action_graph) == DAGraphContainer
+        assert type(action_graph) == ActionGraphTypeDAGLT
 
         self.Q = Q 
         self.subject = subject 
@@ -17,5 +18,32 @@ class FalseQuestionTypeSP:
 
         # have `Q` predict the next node that `subject` travels to, for 
         # every one of its hypotheses. 
-
         return -1  
+
+
+    @staticmethod 
+    def generate_std_instance(initial_q_hypothesis_correct_ratio,prg): 
+
+        # generate the DAG secret 
+        sspace = SecretSpaceTypeDAG.generate_std_instance(prg)
+
+        # generate the action graph 
+        s2l_map = sspace.secret_path_map()
+        A = ActionGraphTypeDAGLT.generate_std_instance(prg,s2l_map)
+
+        # generate the subject 
+        subject = FQSubjectTypeSP(sspace)
+
+        # generate the questioner 
+        cat_set = set(sspace.dag.l2n_map.keys())
+
+        initial_hs_hyp = generate_s2l_hyp_map(sspace.dag,s2l_map,\
+            initial_q_hypothesis_correct_ratio,prg)
+        
+        #       NOTE: questioner is assigned a stacked LCG of between 4-7 LCGs 
+        #       from `prg`. 
+        num_lcgs = modulo_in_range(int(prg()),[4,8])
+        prg2 = prg_to_LCG_stack(prg,num_lcgs,[add,sub])
+        Q = FQQuestionerTypeSP(cat_set,initial_hs_hyp,prg2) 
+
+        return FalseQuestionTypeSP(Q,subject,A)

@@ -147,7 +147,7 @@ class ActionGraphTypeDAGLT(ExtendedDAGTypeLTPN):
     generate an Action Graph, subclass of class<ExtendedDAGTypeLTPN>. 
     """
     @staticmethod 
-    def generate_std_ActionGraphTypeDAGLT(prg,s2l_map,num_layers_range=DEFAULT_ACTION_DAG_NUM_LAYERS_RANGE,\
+    def generate_std_instance(prg,s2l_map,num_layers_range=DEFAULT_ACTION_DAG_NUM_LAYERS_RANGE,\
         num_nodes_per_layer_range=DEFAULT_ACTION_DAG_NUM_NODE_RANGE_PER_LAYER,threshold_constant=0.5): 
 
         assert type(s2l_map) == dict and len(s2l_map) > 1 
@@ -261,8 +261,8 @@ class StateInductionTypeMFUC:
 
     def __init__(self,state_set:set,initial_hs_hyp:defaultdict=defaultdict(set)): 
         assert type(state_set) == set 
-        assert type(initial_hs_hyp) == defaultdict 
-        assert set(initial_hs_hyp.keys()).issubset(category_set) 
+        assert type(initial_hs_hyp) == dict  
+        assert set(initial_hs_hyp.keys()).issubset(state_set) 
 
         self.state_set = state_set
         self.current_hyp = initial_hs_hyp
