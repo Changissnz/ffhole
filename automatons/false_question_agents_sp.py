@@ -6,6 +6,57 @@ from morebs2.matrix_methods import subvec
 
 DEFAULT_SUBJECT_TOTAL_PATHS_PER_RESPONSE = 100 
 
+"""
+(F)alse (Q)uestion Subject Type (S)ecret (P)reservation. 
+
+Subject contains a secret, `de_secret`, that acts as a hidden state. 
+Subject traverses an Action Graph during the running of the 
+False Question Type SP program. Subject uses the hidden state, 
+`de_secret`, to decide the path of traversal, node by node from root 
+to leaf node. 
+
+The `de_secret` is an instance of class<SecretSpaceTypeDAG>, comprised 
+of a directed acyclic graph (DAG), each layer of the graph acting as a category, 
+and a path through the DAG. The path's nodes correspond to category label 
+sets. 
+
+At every node during traversal, besides from the first, subject is to 
+respond to every hypothesis question posed by a questioner of 
+class<FQQuestionerTypeSP>, each hypothesis question comprising of the 
+following: 
+- a predicted next node n_c (action) from a reference node n_r (action) on 
+  the Action Graph [the hypothesis portion], 
+- a question c in the form of a category on the secret [the question portion]. 
+
+If the reference node n_r is activated on the Action Graph, due to questioner's 
+current hypothesis on the hidden state of subject resulting in n_r's linear 
+combination expression outputting TRUE, then the following information is 
+sent back: 
+- boolean confirmation of if n_r is the current node that subject is on, 
+- boolean confirmation of if n_c would be the node that subject travels on if 
+  it were located on n_r. 
+NOTE: the subject's traversal function is designed to be deterministic for every 
+      node of the Action Graph. That is, at any instance, subject would travel 
+      to n_r' from n_r if it were on n_r. 
+
+Additionally, subject sends back a total of `num_paths_per_response`, as an 
+answer to question c. These paths of the DAG for `de_secret` fixate on layer c. 
+The partitioning of the paths is calculated by method<a_node_vec_to_lset_vec>, 
+and is a j-index shift of the questioner's demand of paths, a vector with element 
+    (next node from n_r,ratio of paths). 
+The node n_c is the top priority (0-index) in this vector. If n_c is the actual 
+node that subject would travel on if it were at n_r, then the index shift is 0, 
+meaning that the proportion of paths containing the actual label set of category 
+c is either 51% or 100% (if there is only one node that can be traveled to from 
+n_r). 
+NOTE: The proportion of this guarantees that the questioner, with null statistics 
+      before this questioning, would obtain statistics that place the actual label 
+      set of c as the most frequent. So the questioner would correctly assume what 
+      c is. 
+If n_c is not the actual node, then there is an index shift on the label set vector 
+that subject calculates, usually placing the actual label set as the less frequent 
+one. 
+"""
 class FQSubjectTypeSP: 
 
     def __init__(self,de_secret:SecretSpaceTypeDAG,prg,\
@@ -42,10 +93,15 @@ class FQSubjectTypeSP:
         return q[i] 
 
     """
+    question := int, identifier of question from questioner, 
     q_nr_vec := list, each element is 
         [0] next node from current node 
         [1] ratio of paths that include a specific label (node) of 
             a category (the `question`). 
+        * the first element is the top prediction of subject on the 
+          next node starting from current node. 
+    q_hs_hyp := dict, state -> labelset, questioner's hypothesis on 
+            subject's hidden state. 
 
     return:
     - bool|None, predicted next location from `current_node` is subject's current location. 
@@ -158,6 +214,14 @@ class FQSubjectTypeSP:
     """
     def a_node_vec_to_lset_vec(self,actual_anode,question,q_nr_vec): 
 
+        # case: no more questions from questioner -> 
+        #       subject sends over paths on a question selected 
+        #       by its PRNG. 
+        if type(question) == type(None): 
+            possible_questions = sorted(self.de_secret.dag.l2n_map.keys())
+            i = int(self.prg()) % len(possible_questions)
+            question = possible_questions[i]
+
         # NOTE: inefficient call (calculates entire state-to-labelset map)
         s2l_map = self.de_secret.secret_path_map()
         s2l_map = {question:s2l_map[question]} 
@@ -245,12 +309,6 @@ class FQQuestionerTypeSP:
         self.fin_stat = False 
         return 
 
-    def update_hs_hyp(self): 
-        return -1 
-
-    def de_la_question(self,df:DAGTraversalFunctionTypeHSD,hyp:NodePath,dag:DAGraphContainer): 
-        return -1 
-
     def increment_timestamp(self): 
         self.act_hyp.increment_timestamp()
 
@@ -293,9 +351,11 @@ class FQQuestionerTypeSP:
         # choose a question to ask 
         q = self.choose_question() 
 
-        if type(q) == type(None): 
-            self.fin_stat = True 
-            
+        ## NOTE: code was added here so that 
+        ##      automaton terminates when Q is 
+        ##      fully certain of its answers. 
+        #if type(q) == type(None): 
+        #    self.fin_stat = True    
         self.q_idn = q 
 
         # load next node into queue 
@@ -437,8 +497,8 @@ class FQQuestionerTypeSP:
     concluding step after posing hypothesis question 
     """
     def h_conclusion(self): 
-        # case: certainty that most dominant 
-        if self.cfeedback == True: 
+        # case: certainty that most dominant and questions remaining 
+        if self.cfeedback == True and type(self.q_idn) != type(None): 
             l2v = self.tmp_s2l2c_map[self.q_idn]
             l2v_ = [(k,v) for k,v in l2v.items()]
             lset = min_or_max_rank_in_sequence(l2v_,vf=lambda x:x[1],is_min_rank=False)

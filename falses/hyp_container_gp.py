@@ -41,11 +41,16 @@ class HypothesisContainerTypeGP:
         self.t_index = 0 
         return 
 
-    def display_paths(self,full_display:bool=False):
+    def display_paths(self,display_mode:int=0):
+        assert display_mode in {0,1,2}
+
         def f(p): 
-            if full_display: 
-                print("* ",p)
+            if display_mode == 0: 
+                print("* ",len(p)) 
                 return 
+            if display_mode == 1: 
+                print("* ",p) 
+                return     
             print("* ",p.p)
 
         for x in self.gpaths: 

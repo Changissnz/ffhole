@@ -2,7 +2,34 @@ from .false_question_agents_sp import *
 from morebs2.numerical_generator import prg_to_LCG_stack
 from operator import sub 
 
-# NOTE: first draft 
+"""
+False Question Type (S)ecret (P)reservation. 
+
+Consists of two agents, a questioner `Q` and a subject `S` of questioning. 
+
+There are two primary graphs in operation, an Action Graph G_a that both `Q` and 
+`S` travels on and a secret space G_s such that the hidden state of `S`, used by 
+`S` to travel through the Action Graph, is a <NodePath> in it. This <NodePath> 
+can also be represent as a map, 
+    state (layer) --> label set (nodes of layer). 
+
+The two agents travel from root to leaf node XOR until `Q` is certain on its 
+current hypothesis on the hidden state of `S`.
+
+Suppose that there are r root nodes of G_a. Then `Q` initializes r action hypotheses, 
+a path at every node of the r nodes. 
+
+At every timestamp of travel, `Q` queries `S` on every one of its hypotheses, sending 
+over information including: 
+- a question on a category of `S`' hidden state, 
+- a current node n_r (the tail node of an action hypotheses), 
+- its current hypothesis on the hidden state of `S`, used to determine if n_r is activated: 
+  boolean outputs of TRUE forces `S` to send back boolean confirmation: 
+    [0] if n_r is the current node that `S` is at,
+    [1] if n_r would have been the next node that `S` travels to if it were at 
+NOTE: boolean [0] determines which nodes of the action hypotheses are certainly the actions 
+      that `S` took, during the traversal process. 
+""" 
 class FalseQuestionTypeSP: 
 
     def __init__(self,Q:FQQuestionerTypeSP,subject:FQSubjectTypeSP,action_graph:ActionGraphTypeDAGLT,\
@@ -25,7 +52,6 @@ class FalseQuestionTypeSP:
     def preproc(self): 
         self.subject.first_move(self.action_graph)
         self.Q.act_hyp.load_starting_nodes(deepcopy(self.action_graph.l2n_map[0]))
-
         return
 
     def __next__(self): 
@@ -70,10 +96,12 @@ class FalseQuestionTypeSP:
             return True 
 
         # case: all questions have been answered and answers marked for certainty
+        """
         if type(q) == type(None): 
             self.Q.act_hyp.flush_queue() 
             return None 
-
+        """
+        
         # transmit Q's query to subject 
         q_hs_hyp = self.Q.current_hidden_state_hyp()
 

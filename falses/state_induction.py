@@ -2,8 +2,6 @@ from collections import defaultdict
 from morebs2.point_sorter import min_or_max_rank_in_sequence
 from copy import deepcopy
 
-#DEFAULT_SET_KEY_DECODE_FUNCTION = lambda x: set(string_to_vector(x)) 
-
 """
 State Induction Type (M)ost (F)requent (U)nless (C)ertain. 
 
