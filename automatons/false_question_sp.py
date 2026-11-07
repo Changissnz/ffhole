@@ -2,6 +2,7 @@ from .false_question_agents_sp import *
 from morebs2.numerical_generator import prg_to_LCG_stack
 from operator import sub 
 
+# NOTE: first draft 
 class FalseQuestionTypeSP: 
 
     def __init__(self,Q:FQQuestionerTypeSP,subject:FQSubjectTypeSP,action_graph:ActionGraphTypeDAGLT,\
@@ -28,11 +29,49 @@ class FalseQuestionTypeSP:
 
         # have `Q` predict the next node that `subject` travels to, for 
         # every one of its hypotheses. 
-        
-        return -1  
+        self.process_Q_hypotheses() 
+        self.Q.increment_timestamp()
 
-    def process_hyp(self): 
+        # have `subject` make its action on action graph 
+        self.subject.next_action(self.action_graph,self.action_graph_op)
         return 
+
+    def process_Q_hypotheses(self): 
+
+        stat = True 
+
+        while stat: 
+            q = self.process_one_hyp()
+
+            # finished 
+            if type(q) == type(None): 
+                stat = False 
+        return 
+
+    def process_one_hyp(self): 
+
+        h,node_res_seq,q  = self.Q.process_next_hyp(self.action_graph_op,self.action_graph)
+
+        # case: finished 
+        if type(h) == type(None): 
+            self.Q.flush_queue() 
+            return None 
+
+        # transmit Q's query to subject 
+        q_hs_hyp = self.Q.current_hidden_state_hyp()
+
+        # subject responds to Q's query 
+        lfeedback,cfeedback = self.subject.respond_to_Q_hyp(q,self.action_graph,\
+            self.action_graph_op,h.tail(),node_res_seq,q_hs_hyp)
+
+        self.Q.recv_lfeedback(lfeedback,cfeedback)
+
+        p_response = self.subject.paths_for_response() 
+
+        for p in p_response: 
+            M = nodepath_to_s2l_map(self.subject.de_secret,p)
+            self.Q.recv_probable_secret(M) 
+        return self.Q.h_conclusion() 
 
     @staticmethod 
     def generate_std_instance(initial_q_hypothesis_correct_ratio,prg): 

@@ -124,6 +124,9 @@ class SecretSpaceTypeDAG:
     def n_paths_with_node(self,node,num_paths,prg=None): 
         return self.dag.n_paths_with_node(node,num_paths,False,prg)
 
+    def n_paths_with_nodeset(self,nodeset,num_paths,prg=None): 
+        return self.dag.n_paths_with_nodeset(nodeset,num_paths,False,prg)
+
     """
     generates a standard instance of <SecretSpaceTypeDAG>, using the 
     default values provided at the top. 

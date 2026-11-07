@@ -14,6 +14,12 @@ The `num_paths_per_tail_node` threshold is the maximum
 number of paths with any tail node `n_t` of path. It is 
 to limit the number of conflicting candidates for graph 
 nodes that currently end at that specific node `n_t`. 
+
+NOTE: the data structure keeps track of relevant nodesets 
+      from new or updated paths stored into it. If a path 
+      stored into it has tail node marked with weight 1, 
+      that tail node is relevant. 0-weights are used to 
+      signify uncertainty or incorrectness. 
 """
 class HypothesisContainerTypeGP:
 
@@ -24,9 +30,15 @@ class HypothesisContainerTypeGP:
         assert num_paths_per_tail_node >= 1 
 
         self.gpaths = gpaths 
+        # contains deltas from <NodePath>s in `gpaths`
+        self.gpaths_queue = [] 
         self.paths_per_tail = num_paths_per_tail_node
 
         self.tail2paths = dict() 
+        
+        # timestamp -> nodeset, used to keep track of marked nodes per timestamp 
+        self.tstamp2nodeset = defaultdict(set)
+        self.t_index = 0 
         return 
 
     def __getitem__(self,i):
@@ -103,17 +115,25 @@ class HypothesisContainerTypeGP:
 
         stat = self.add_path_to_t2p_map(P) 
 
+        # case: path is not added because tail limit 
+        #       reached 
         if not stat: return False 
 
+        # add path to sequence of paths
         stat = False 
-        for (i,p) in enumerate(self.gpaths): 
-            if P.cost() <= p.cost(): 
-                self.gpaths.insert(i,P)
+        for (i,p) in enumerate(self.gpaths_queue): 
+            if P.cost() >= p.cost(): 
+                self.gpaths_queue.insert(i,P)
                 stat = True 
                 break 
         
         if not stat: 
-            self.gpaths.append(P)
+            self.gpaths_queue.append(P)
+
+        # add tail node of P if its weight=1 marks it 
+        # as relevant 
+        if P.pweight[-1] == 1: 
+            self.tstamp2nodeset[self.t_index] |= {P.tail()} 
         return True 
 
     """
@@ -129,7 +149,7 @@ class HypothesisContainerTypeGP:
 
         index = None 
         for (i,p) in enumerate(self.tail2paths[t]): 
-            if P.cost() <= p.cost(): 
+            if P.cost() >= p.cost(): 
                 self.tail2paths[t].insert(i,P)
                 index = i 
                 break 
@@ -142,3 +162,11 @@ class HypothesisContainerTypeGP:
             self.tail2paths[t].pop(-1) 
 
         return index < self.paths_per_tail
+
+    def flush_queue(self):
+        while len(self.gpaths_queue): 
+            self.gpaths.append(self.gpaths_queue.pop(0)) 
+        return 
+
+    def increment_timestamp(self): 
+        self.t_index += 1 

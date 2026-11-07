@@ -1,16 +1,25 @@
 from falses.bi_dag_function import * 
+from falses.state_induction import * 
 from falses.hyp_container_gp import * 
 from morebs2.numerical_generator import prg_partition_for_float
 
+DEFAULT_SUBJECT_TOTAL_PATHS_PER_RESPONSE = 100 
+
 class FQSubjectTypeSP: 
 
-    def __init__(self,de_secret:SecretSpaceTypeDAG,prg): 
+    def __init__(self,de_secret:SecretSpaceTypeDAG,prg,\
+        num_paths_per_response:int=DEFAULT_SUBJECT_TOTAL_PATHS_PER_RESPONSE): 
+
         assert type(de_secret) == SecretSpaceTypeDAG
         assert type(prg) in {MethodType,FunctionType}
+        assert num_paths_per_response > 0 
+
         self.de_secret = de_secret
         self.prg = prg 
+        self.num_paths_per_response = num_paths_per_response
 
-        self.loc = None 
+        self.loc = None
+        self.current_l2r_path_demand = None  
         return 
 
     """
@@ -36,21 +45,80 @@ class FQSubjectTypeSP:
             a category (the `question`). 
 
     return:
-    - 
+    - bool|None, predicted next location from `current_node` is subject's current location. 
+    - bool|None, predicted next location from `current_node` is correct choice if subject were 
+        move from `current_node`. 
     """
     def respond_to_Q_hyp(self,question,agraph:ActionGraphTypeDAGLT,action_graph_op:DAGTraversalFunctionTypeHSD,\
-        current_node,q_predicted_node,q_nr_vec): 
+        current_node,q_nr_vec,q_hs_hyp):  
 
         assert type(agraph) == ActionGraphTypeDAGLT
         assert question in agraph.G 
                 
         actual_next = self.next_node_from_current_node(agraph,action_graph_op,current_node) 
         C = agraph.children_of_node(current_node,True)
-        a2l_vec = self.a_node_to_lset_vec(actual_next,C,question,q_nr_vec)
+        self.current_l2r_path_demand = self.a_node_vec_to_lset_vec(actual_next,C,question,q_nr_vec)
 
+        lfeedback = self.location_feedback(agraph,q_hs_hyp,current_node)
+
+        # case: feedback enabled, subject responds back with status on if 
+        #       its current location matches with questioner's predicted next node. 
+        if lfeedback: 
+            return self.loc == q_hs_hyp[0][0],actual_next == q_hs_hyp[0][0]
+        return None,None 
+
+    def paths_for_response(self): 
+        assert type(self.current_l2r_path_demand) != type(None) 
+
+        pvec = self.num_paths_info() 
+
+        while len(pvec) > 0: 
+            # choose a label-set 
+            i = int(prg()) % len(pvec) 
+            lset,total_num = pvec[i] 
+
+            # case: no more of that specific label set 
+            if total_num == 0: 
+                pvec.pop(i) 
+                continue 
+
+            num_selected = modulo_in_range(int(prg()),[1,total_num+1]) 
+            P = self.de_secret.n_paths_with_nodeset(lset,num_selected,prg=self.prg)
+
+            for p in P: 
+                yield p 
+            total_num -= num_selected
+            pvec[i] = [lset,total_number] 
         return 
 
+    """
+    calculates the number of paths per label-set of `current_l2r_path_demand`, 
+    using PRNG distribution of remainder at the end.  
+    """
+    def num_paths_info(self): 
+        num_paths_vec = [] 
+        c = 0 
+        for lset,ratio in self.current_l2r_path_demand:
+            num = floor(ratio * self.num_paths_per_response)
+            num_paths_vec.append([lset,num])
+            c += num 
+        diff = self.num_paths_per_response - c 
+
+        if diff > 0: 
+            rem_vec = [1] * diff 
+            x = prg_safe_uniform_partition_sequence(rem_vec,len(num_paths_vec),\
+                self.prg,distribute_remainder_evenly=True) 
+
+            for (i,x_) in enumerate(x): 
+                num_paths_vec[i][1] = num_paths_vec[i][1] + sum(x_) 
+        return num_paths_vec 
+
     #------------------------------------------- used for action graph traversal 
+
+    def next_action(self,agraph:ActionGraphTypeDAGLT,\
+        action_graph_op:DAGTraversalFunctionTypeHSD): 
+
+        self.loc = self.next_node_from_current_node(agraph,action_graph_op,self.loc)
 
     """
     calculates the next node on `agraph` (Action Graph), starting from `current_node` 
@@ -68,16 +136,15 @@ class FQSubjectTypeSP:
     #------------------------------------------- used for assigning ratios of secret paths
 
     """
-    next action nodeset to secret state labelset vector. 
+    maps a next action nodeset to secret state labelset vector. 
     Output used to calculate the secret's paths to be sent to the questioner, based 
     on ratios of the paths containing the assigned answer (label set) to the question.  
 
     calculates a vector w/ every element of the following: 
-    [0] next action node
-    [1] label-set for `question` corresponding to this next action node 
-    [2] r in [0.,1.], ratio of paths containing label-set from [1] 
+    [0] label-set for `question` corresponding to this next action node 
+    [1] r in [0.,1.], ratio of paths containing label-set from [1] 
     """
-    def a_node_to_lset_vec(self,actual_anode,question,q_nr_vec): 
+    def a_node_vec_to_lset_vec(self,actual_anode,question,q_nr_vec): 
         assert actual_anode in next_anodeset
 
         # NOTE: inefficient call (calculates entire state-to-labelset map)
@@ -86,7 +153,7 @@ class FQSubjectTypeSP:
 
         # case: only one next 
         if len(q_nr_vec) == 1: 
-            return [(actual_anode,s2l_map[question],1.0)]
+            return [(s2l_map[question],1.0)]
 
         lx = alternative_label_sort(self.de_secret.dag,s2l_map,question,prg)
         lx_ = [lx1 - s2l_map[question] for lx1 in lx] 
@@ -118,7 +185,7 @@ class FQSubjectTypeSP:
         # merge `q_nr_vec` with `label_sets`
         q_nr_vec2 = [] 
         for l,nr in zip(label_sets,q_nr_vec): 
-            q_nr_vec2.append((nr[0],l,nr[1])) 
+            q_nr_vec2.append((l,nr[1])) 
         return q_nr_vec2
 
     #----------------------------------------------- used for determining if questioner's 
@@ -147,22 +214,86 @@ class FQQuestionerTypeSP:
         self.hs_hyp_mach = StateInductionTypeMFUC(category_set,initial_hs_hyp)
         self.prg = prg   
 
-        self.active_questions = set() 
+        # variables used to store contextual information for every 
+        # hypothesis-based question 
+            # the hypothesis being worked on by agent 
+        self.hyp_in_queue = None 
+            # the predicted next node (action) from `hyp_in_queue`
+        self.p_next_node = None 
+            # status of whether predicted next node is the correct actual location. 
+        self.lfeedback = None  
+            # status of whether predicted next node is the correct location 
+            # if in the event 
+        self.cfeedback = None 
+            # current question identifier being asked 
+        self.q_idn = None 
+            # used to store the response of probable secret paths from asking 
+            # on hypothesis 
+        # state -> label -> count 
+        self.tmp_s2l2c_map = dict() 
         return 
 
     def update_hs_hyp(self): 
         return -1 
 
     def de_la_question(self,df:DAGTraversalFunctionTypeHSD,hyp:NodePath,dag:DAGraphContainer): 
-        node_res_seq = self.next_hypothesis_and_resdist_on_action(df,hyp,dag)
         return -1 
 
-    def uncertain_subject_hidden_states(self): 
-        return -1 
+    def increment_timestamp(self): 
+        self.hs_hyp_mach.increment_timestamp()
+
+    def current_hidden_state_hyp(self): 
+        return self.hs_hyp_mach.state_induction()
 
     #------------------------------------ used for calculating next hypotheses on action 
 
+    """
+    - return:
+    [0] NodePath, hypothesis being acted on,
+    [1] list, element is 
+            [0] predicted next node 
+            [1] ratio of resources distributed to confirm location. 
+    [2] question to ask (category of subject' hidden state)
+    """
+    def process_next_hyp(self,df:DAGTraversalFunctionTypeHSD,\
+        dag:DAGraphContainer):
+
+        # choose next hypothesis from memory, and predict the next 
+        # action (node) from it. 
+        h = self.next_hyp()
+        if type(h) == type(None): return None,None,None 
+
+        node_res_seq = self.next_hypothesis_and_resdist_on_action(df,hyp,dag)
+
+        # choose a question to ask 
+        q = self.choose_question() 
+        self.q_idn = q 
+        return h,node_res_seq,q 
+
+    def choose_question(self): 
+        q0,q1 = self.hs_hyp_mach.active_questions()
+        q0,q1 = sorted(q0),sorted(q1)
+
+        # if there are any unanswered questions, choose 
+        # one of them 
+        if len(q0) > 0: 
+            q0 = prg_seqsort(q0,self.prg)
+            i = int(self.prg()) % len(q0) 
+            return q0[i] 
+
+        # case: all questions have been answered, and 
+        #       all answers have been marked as certain. 
+        if len(q1) == 0: 
+            return None 
+
+        # choose arbitrary question that has already been answered 
+        q1 = prg_seqsort(q1,self.prg)
+        i = int(self.prg()) % len(q1) 
+        return q1[i] 
+
     def next_hyp(self): 
+        self.reset_hyp_delta_vars() 
+
         if self.fin_iter_stat: 
             return None 
 
@@ -170,16 +301,20 @@ class FQQuestionerTypeSP:
             self.fin_iter_stat = True 
             return None 
 
-        return self.act_hyp[self.hyp_index] 
-        
+        q = self.act_hyp[self.hyp_index] 
+        self.hyp_index += 1 
+        return q 
 
-    def next_hypothesis_on_action(self,df:DAGTraversalFunctionTypeHSD,hyp:NodePath,\
+    """
+    predicts the next node (after the tail of `hyp`). 
+    """
+    def hyp_delta(self,df:DAGTraversalFunctionTypeHSD,hyp:NodePath,\
         dag:DAGraphContainer):
         assert type(df) == DAGTraversalFunctionTypeHSD
         assert type(hyp) == NodePath  
         assert issubclass(type(dag),DAGraphContainer)
 
-        M = self.hs_hyp_mach.state_induction()
+        M = self.current_hidden_state_hyp()
         n = hyp.tail() 
         
         return df.next_from_node(M,dag,n) 
@@ -222,3 +357,69 @@ class FQQuestionerTypeSP:
             S.append((c,p))
 
         return S 
+
+    #-------------------------------------- methods to reset variables that operate in questioning process
+
+    """
+    method called after all hypotheses have been iterated through 
+    by the False Question Type SP automaton. 
+    """
+    def reset_iter(self): 
+        self.hyp_index = 0 
+        self.fin_iter_stat = False 
+
+    def reset_hyp_delta_vars(self): 
+        self.hyp_in_queue = None 
+        self.p_next_node = None 
+        self.lfeedback = None 
+        self.cfeedback = None 
+        self.q_idn = None 
+        self.tmp_s2l2c_map = dict() 
+
+        for c in self.hs_hyp_mach.state_set: 
+            self.tmp_s2l2c_map[c] = defaultdict(int) 
+
+    #-----------------------------------------  receiving feedback from subject: probable labelsets of hidden state
+    #-----------------------------------------  and context on actions. 
+
+    def recv_lfeedback(self,lfeedback,cfeedback): 
+        assert type(lfeedback) in {type(None),bool}
+        assert type(cfeedback) in {type(None),bool}
+
+        self.lfeedback = lfeedback 
+        self.cfeedback = cfeedback
+
+    """
+    processes a <NodePath> from subject, into the 
+    appropriate categories and labels. 
+    """
+    def recv_probable_secret(self,M): 
+        assert type(M) == dict 
+
+        for state,labelset in M.items():  
+            for l in labelset: 
+                if l not in self.tmp_s2l2c_map[state]: 
+                    self.tmp_s2l2c_map[state][l] = 0 
+                self.tmp_s2l2c_map[state][l] += 1 
+
+    """
+    concluding step after posing hypothesis question 
+    """
+    def h_conclusion(self): 
+        # case: certainty that most dominant 
+        if self.cfeedback == True: 
+            l2v = self.tmp_s2l2c_map[self.q_idn]
+            lset = min_or_max_rank_in_sequence(l2v,vf=lambda x:x[1],is_min_rank=False)
+            lset = set(lset) 
+            self.hs_hyp_mach.set_certain_category(self.q_idn,lset) 
+
+        self.hs_hyp_mach.delete_path(self.hyp_in_queue) 
+
+        w = 0 
+
+        # case: location feedback outputs True -> mark node as relevant 
+        if self.lfeedback == True: 
+            w = 1 
+
+        P = self.hs_hyp_mach.update_path(self.hyp_in_queue,self.p_next_node,w)
+        return self.hs_hyp_mach.add_path_to_mem(P)
