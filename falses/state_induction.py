@@ -1,5 +1,6 @@
 from collections import defaultdict 
 from morebs2.point_sorter import min_or_max_rank_in_sequence
+from copy import deepcopy
 
 #DEFAULT_SET_KEY_DECODE_FUNCTION = lambda x: set(string_to_vector(x)) 
 
@@ -14,8 +15,7 @@ the default `key_decode_function` is intended for vector-like data.
 """
 class StateInductionTypeMFUC: 
 
-    def __init__(self,state_set:set,initial_hs_hyp:defaultdict=defaultdict(set),\
-        key_decode_function=DEFAULT_SET_KEY_DECODE_FUNCTION): 
+    def __init__(self,state_set:set,initial_hs_hyp:defaultdict=defaultdict(set)): 
         assert type(state_set) == set 
         assert type(initial_hs_hyp) == dict  
         assert set(initial_hs_hyp.keys()).issubset(state_set) 
@@ -63,7 +63,7 @@ class StateInductionTypeMFUC:
         return 
 
     def set_certain_category(self,c,l):
-        assert c in self.category_set
+        assert c in self.state_set
         assert type(l) != type(None) 
 
         self.s2c_map[c] = True 

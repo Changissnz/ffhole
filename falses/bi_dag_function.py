@@ -237,7 +237,6 @@ class DAGTraversalFunctionTypeHSD:
         for l in levels: 
             l_nodeset = sorted(self.dag.l2n_map[l]) 
             prt = prg_safe_uniform_partition_sequence(l_nodeset,len(C),prg,distribute_remainder_evenly=True)
-
             for (i,p) in enumerate(prt): 
                 for p_ in p: 
                     node2int_map[p_] = i 

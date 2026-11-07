@@ -19,26 +19,34 @@ class FalseQuestionTypeSP:
         self.action_graph_op = action_graph_op
 
         self.preproc()
+        self.fin_stat = False 
         return 
 
     def preproc(self): 
         self.subject.first_move(self.action_graph)
+        self.Q.act_hyp.load_starting_nodes(deepcopy(self.action_graph.l2n_map[0]))
+
         return
 
     def __next__(self): 
 
+        if self.fin_stat: return 
+
         # have `Q` predict the next node that `subject` travels to, for 
         # every one of its hypotheses. 
-        self.process_Q_hypotheses() 
+        stat1 = self.process_Q_hypotheses() 
         self.Q.increment_timestamp()
 
         # have `subject` make its action on action graph 
-        self.subject.next_action(self.action_graph,self.action_graph_op)
-        return 
+        stat2 = self.subject.next_action(self.action_graph,self.action_graph_op)
+
+        self.fin_stat = self.subject.fin_stat and self.Q.fin_stat 
+        return  
 
     def process_Q_hypotheses(self): 
 
         stat = True 
+        self.Q.reset_iter() 
 
         while stat: 
             q = self.process_one_hyp()
@@ -46,15 +54,24 @@ class FalseQuestionTypeSP:
             # finished 
             if type(q) == type(None): 
                 stat = False 
-        return 
+        return len(self.Q.act_hyp) == 0 
 
     def process_one_hyp(self): 
 
-        h,node_res_seq,q  = self.Q.process_next_hyp(self.action_graph_op,self.action_graph)
+        h,node_res_seq,q,fin_stat  = self.Q.process_next_hyp(self.action_graph_op,self.action_graph)
 
         # case: finished 
+        if fin_stat: 
+            self.Q.act_hyp.flush_queue() 
+            return None 
+
+        # case: hypothesis reached end of actions 
         if type(h) == type(None): 
-            self.Q.flush_queue() 
+            return True 
+
+        # case: all questions have been answered and answers marked for certainty
+        if type(q) == type(None): 
+            self.Q.act_hyp.flush_queue() 
             return None 
 
         # transmit Q's query to subject 
@@ -69,7 +86,7 @@ class FalseQuestionTypeSP:
         p_response = self.subject.paths_for_response() 
 
         for p in p_response: 
-            M = nodepath_to_s2l_map(self.subject.de_secret,p)
+            M = nodepath_to_s2l_map(self.subject.de_secret.dag,p)
             self.Q.recv_probable_secret(M) 
         return self.Q.h_conclusion() 
 

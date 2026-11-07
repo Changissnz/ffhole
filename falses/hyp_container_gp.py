@@ -41,6 +41,16 @@ class HypothesisContainerTypeGP:
         self.t_index = 0 
         return 
 
+    def display_paths(self,full_display:bool=False):
+        def f(p): 
+            if full_display: 
+                print("* ",p)
+                return 
+            print("* ",p.p)
+
+        for x in self.gpaths: 
+            f(x) 
+
     def __getitem__(self,i):
         if isinstance(i, slice): 
             return self.gpaths.__getitem__(i)    
@@ -62,7 +72,7 @@ class HypothesisContainerTypeGP:
         nodes = sorted(nodes) 
         for n in nodes: 
             P = NodePath(n) 
-            self.tail2paths[n] = P 
+            self.tail2paths[n] = [P]
             self.gpaths.append(P) 
         return 
 
@@ -70,14 +80,15 @@ class HypothesisContainerTypeGP:
         assert type(P) == NodePath
         if type(t2p_index) == type(None): 
             t2p_index = self.path_to_t2p_index(P) 
-            assert t2p_index != -1 
+            #assert t2p_index != -1 
         else: 
             assert P.tail() in self.tail2paths 
             assert self.tail2paths[P.tail()] == t2p_index
         
-        self.tail2paths[P.tail()].pop(t2p_index)
+        if t2p_index != -1: 
+            self.tail2paths[P.tail()].pop(t2p_index)
 
-        if type(t2p_index) == type(None): 
+        if type(p2s_index) == type(None): 
             p2s_index = self.path_to_seq_index(P) 
             assert p2s_index != -1 
         else: 
@@ -109,7 +120,7 @@ class HypothesisContainerTypeGP:
     def update_path(self,P,next_node,next_weight):  
         assert type(P) == NodePath 
         P.append(next_node,next_weight)
-        return 
+        return P 
 
     def add_path_to_mem(self,P): 
 
@@ -132,7 +143,7 @@ class HypothesisContainerTypeGP:
 
         # add tail node of P if its weight=1 marks it 
         # as relevant 
-        if P.pweight[-1] == 1: 
+        if P.pweights[-1] == 1: 
             self.tstamp2nodeset[self.t_index] |= {P.tail()} 
         return True 
 
@@ -165,7 +176,8 @@ class HypothesisContainerTypeGP:
 
     def flush_queue(self):
         while len(self.gpaths_queue): 
-            self.gpaths.append(self.gpaths_queue.pop(0)) 
+            p = self.gpaths_queue.pop(0)
+            self.gpaths.append(p) 
         return 
 
     def increment_timestamp(self): 
