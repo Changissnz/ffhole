@@ -218,7 +218,7 @@ class DAGTraversalFunctionTypeHSD:
     the next node (proper child) or None if leaf. 
     """
     def next_from_node(self,hidden_state_map,dag2,n):
-        assert type(dag2) == DAGraphContainer
+        assert issubclass(type(dag2),DAGraphContainer)
         assert n in dag2.G 
 
         C = dag2.children_of_node(n,True) 
@@ -265,6 +265,8 @@ class StateInductionTypeMFUC:
         assert set(initial_hs_hyp.keys()).issubset(state_set) 
 
         self.state_set = state_set
+
+        # state -> label set 
         self.current_hyp = initial_hs_hyp
 
         # state -> label -> frequency 

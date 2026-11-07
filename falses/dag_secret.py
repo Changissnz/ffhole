@@ -27,6 +27,19 @@ def nodepath_to_s2l_map(dag,p:NodePath):
     return {k:set(v) for k,v in D2.items()} 
 
 """
+sorts vector of label sets for `state` (level) of DAG, in 
+ascending order by difference function F, 
+    F(other_label_set) = |actual_s2l_map[state] - other_label_set|
+"""
+def alternative_label_sort(dag:DAGraphContainer,actual_s2l_map,state,prg):
+
+    assert issubclass(type(dag),DAGraphContainer) 
+
+    S = dag.intrasets_of_layer(state)
+    S = prg_seqsort_ties(S,prg,vf=lambda x: len(x - actual_s2l_map[state]))
+    return S 
+
+"""
 generates a state-to-labelset hypothesis map. Generation attempts 
 to assign the closest number of correct label sets, as per `correct_ratio`, 
 for the states. 
@@ -40,9 +53,8 @@ NOTE: single-node DAG layers are strongly advised against for applications
 def generate_s2l_hyp_map(dag,actual_s2l_map,correct_ratio,prg): 
 
     def alt_labelset(state):  
+        S = alternative_label_sort(dag,actual_s2l_map,state,prg) 
 
-        S = dag.intrasets_of_layer(state)
-        S = prg_seqsort_ties(S,prg,vf=lambda x: len(x - actual_s2l_map[state]))
         q = S[-1] 
         q_ = q - actual_s2l_map[state]
         if len(q_) > 0: 

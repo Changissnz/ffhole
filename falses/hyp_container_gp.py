@@ -29,6 +29,22 @@ class HypothesisContainerTypeGP:
         self.tail2paths = dict() 
         return 
 
+    def __getitem__(self,i):
+        if isinstance(i, slice): 
+            return self.gpaths.__getitem__(i)    
+
+        if type(i) in {list,np.ndarray}:
+            qx = []
+            for i_ in i:
+                qx.append(self.__getitem__(i_))
+            return qx 
+
+        assert i < len(self) 
+        return self.gpaths[i]  
+
+    def __len__(self): 
+        return len(self.gpaths) 
+
     def load_starting_nodes(self,nodes:set): 
 
         nodes = sorted(nodes) 
