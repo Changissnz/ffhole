@@ -38,6 +38,8 @@ sent back:
 NOTE: the subject's traversal function is designed to be deterministic for every 
       node of the Action Graph. That is, at any instance, subject would travel 
       to n_r' from n_r if it were on n_r. 
+NOTE: see description of node activation function in class<ActionGraphTypeDAGLT> 
+      of file<bi_dag_function>. 
 
 Additionally, subject sends back a total of `num_paths_per_response`, as an 
 answer to question c. These paths of the DAG for `de_secret` fixate on layer c. 

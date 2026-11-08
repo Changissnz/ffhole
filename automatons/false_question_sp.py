@@ -8,27 +8,76 @@ False Question Type (S)ecret (P)reservation.
 Consists of two agents, a questioner `Q` and a subject `S` of questioning. 
 
 There are two primary graphs in operation, an Action Graph G_a that both `Q` and 
-`S` travels on and a secret space G_s such that the hidden state of `S`, used by 
-`S` to travel through the Action Graph, is a <NodePath> in it. This <NodePath> 
-can also be represent as a map, 
+`S` travels on and a secret space G_s such that the hidden state T of `S`, used by 
+`S` to travel through the Action Graph, is a <NodePath> of G_s. This <NodePath> 
+can also be represent as a map M_t, 
     state (layer) --> label set (nodes of layer). 
+Every node n_i of G_a is associated with a boolean activation function F_i. Function 
+F_i operates using: 
+    - a set of categories C_i from G_s, essentially a directed acyclic graph 
+    (DAG); a category is a level of the DAG. 
+    - a weight vector W_i, of the same size as the set of categories. 
 
-The two agents travel from root to leaf node XOR until `Q` is certain on its 
-current hypothesis on the hidden state of `S`.
+The two agents travel from root to leaf node. 
+-------------------------------------------------------------------------------------
+            **Procedure** 
 
 Suppose that there are r root nodes of G_a. Then `Q` initializes r action hypotheses, 
 a path at every node of the r nodes. 
 
-At every timestamp of travel, `Q` queries `S` on every one of its hypotheses, sending 
-over information including: 
+At every timestamp of travel, `Q` queries `S` with every one of its hypotheses. A hypothesis 
+question from `Q` consists of: 
+- a predicted next node n_c (action) from a reference node n_r (action) on 
+  the Action Graph [the hypothesis portion], 
+- a question c in the form of a category on the secret [the question portion]. 
+
+`S` will always send a response back, in the form of m <NodePath>s, each one a path of G_s. 
+The partitioning of the paths is fixated on question c: 
+    PART(m) := <each element a 2-tuple: (label set of c, ratio of the m paths)>. 
+NOTE: see description of class<FQSubjectTypeSP> in file<false_question_agents_sp>. 
+      In loose terms, if the predicted next node n_c is the node that `S` would have 
+      taken if it were at n_r, then the number of paths in PART(m) with the correct 
+      label set for category c is dominant. In frequency analysis done by `Q`, the 
+      most frequent label set it obtains through registering these responses of m <NodePath>s 
+      is its hypothesis on the label set of `c`. The <StateInductionTypeMFUC> is the 
+      process that `Q` uses for frequency analysis. In the case where question `c` has 
+      already been marked as certain in answer, `Q` chooses that respective label set 
+      marked certain instead of the most frequency label set, calculated through the 
+      <NodePath>s it receives from `S`. 
+
+The current hypothesis H_h of `Q` on the hidden state of `S` is the determinant on the 
+activation of the node n_r. For any node n_i of G_a, the hidden state hypothesis H_h is 
+first mapped to a boolean vector B_i, 
+    (C_i,H_h) --> {0,1}*. 
+For every category c in C_i, if H_h[c] equals M_t[c], then the boolean for c is 1, otherwise 0. 
+Then activation occurs if  
+    (B_i * W_i) >= sum(W_i) * t_i; t_i an arbitrary real number in [0.,1.]. 
+
+If node n_r is activated, `S` transmits the following information, as part of feedback response, 
+to `Q`:  
 - a question on a category of `S`' hidden state, 
 - a current node n_r (the tail node of an action hypotheses), 
 - its current hypothesis on the hidden state of `S`, used to determine if n_r is activated: 
   boolean outputs of TRUE forces `S` to send back boolean confirmation: 
     [0] if n_r is the current node that `S` is at,
-    [1] if n_r would have been the next node that `S` travels to if it were at 
-NOTE: boolean [0] determines which nodes of the action hypotheses are certainly the actions 
-      that `S` took, during the traversal process. 
+    [1] if n_r would have been the next node that `S` travels to if it were at. 
+NOTE: boolean [0] confirms what nodes of the action hypotheses certainly are the action 
+      that `S` took at the beginning of that timestamp. 
+      
+      Boolean [1] determines if `S`' response of m <NodePath>s back from it certainly 
+      yields the most frequent actual label set as the actual label set. If boolean [1] 
+      is TRUE, then `Q`'s <StateInductionTypeMFUC> registers c as "certain" in answer, 
+      resorting to that most frequent label set from the m <NodePath>s response from 
+      that point on. 
+
+------------------------------------------------------------------------------------------
+            **Objective** 
+
+The traversal of `S` through Action Graph G_a allows for questioner `Q` to uncover the hidden 
+state (full or partial) of `S`. The discovery of `S`' hidden state is objective #1 for `Q`. 
+
+`Q`'s objective #2 is to correctly identify the actions (nodes) that `S` took in its entire 
+traversal of G_a. 
 """ 
 class FalseQuestionTypeSP: 
 
@@ -96,12 +145,10 @@ class FalseQuestionTypeSP:
             return True 
 
         # case: all questions have been answered and answers marked for certainty
-        """
-        if type(q) == type(None): 
-            self.Q.act_hyp.flush_queue() 
-            return None 
-        """
-        
+        ##if type(q) == type(None): 
+        ##    self.Q.act_hyp.flush_queue() 
+        ##    return None 
+
         # transmit Q's query to subject 
         q_hs_hyp = self.Q.current_hidden_state_hyp()
 
