@@ -78,6 +78,9 @@ state (full or partial) of `S`. The discovery of `S`' hidden state is objective 
 
 `Q`'s objective #2 is to correctly identify the actions (nodes) that `S` took in its entire 
 traversal of G_a. 
+
+NOTE: in the current code implementation, the hidden state of `S` does not change throughout 
+the course of execution. It is a static <NodePath> of an arbitrary DAG. 
 """ 
 class FalseQuestionTypeSP: 
 
