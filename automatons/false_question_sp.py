@@ -7,18 +7,18 @@ False Question Type (S)ecret (P)reservation.
 
 Consists of two agents, a questioner `Q` and a subject `S` of questioning. 
 
-There are two primary graphs in operation, an Action Graph G_a that both `Q` and 
-`S` travels on and a secret space G_s such that the hidden state T of `S`, used by 
-`S` to travel through the Action Graph, is a <NodePath> of G_s. This <NodePath> 
-can also be represent as a map M_t, 
+There are two primary graphs in operation, both directed acyclic graphs (DAG). They are 
+an Action Graph G_a that both `Q` and `S` travels on and a secret space G_s such 
+that the hidden state T of `S`, used by `S` to travel through the Action Graph, 
+is a <NodePath> of G_s. This <NodePath> can also be represent as a map M_t, 
     state (layer) --> label set (nodes of layer). 
 Every node n_i of G_a is associated with a boolean activation function F_i. Function 
 F_i operates using: 
-    - a set of categories C_i from G_s, essentially a directed acyclic graph 
-    (DAG); a category is a level of the DAG. 
+    - a set of categories C_i from G_s, essentially a DAG; a category is a level 
+      of the DAG. 
     - a weight vector W_i, of the same size as the set of categories. 
 
-The two agents travel from root to leaf node. 
+The two agents travel from root to leaf node of G_a. 
 -------------------------------------------------------------------------------------
             **Procedure** 
 
@@ -46,9 +46,9 @@ NOTE: see description of class<FQSubjectTypeSP> in file<false_question_agents_sp
       set marked certain instead of the most frequency label set, calculated through 
       the <NodePath>s it receives from `S`. 
 
-The current hypothesis H_h of `Q` on the hidden state of `S` is the determinant on the 
-activation of the node n_r. For any node n_i of G_a, the hidden state hypothesis H_h is 
-first mapped to a boolean vector B_i, 
+The current hypothesis H_h of `Q` on the hidden state of `S` (M_t of T) is the determinant 
+on the activation of the node n_r. For any node n_i of G_a, the hidden state hypothesis H_h 
+is first mapped to a boolean vector B_i, 
     (C_i,H_h) --> {0,1}*. 
 For every category c in C_i, if H_h[c] equals M_t[c], then the boolean for c is 1, otherwise 0. 
 Then activation occurs if  
@@ -113,7 +113,7 @@ class FalseQuestionTypeSP:
 
         # have `Q` predict the next node that `subject` travels to, for 
         # every one of its hypotheses. 
-        stat1 = self.process_Q_hypotheses() 
+        self.process_Q_hypotheses() 
         self.Q.increment_timestamp()
 
         # have `subject` make its action on action graph 
@@ -133,15 +133,22 @@ class FalseQuestionTypeSP:
             # finished 
             if type(q) == type(None): 
                 stat = False 
-        return len(self.Q.act_hyp) == 0 
+            
+            if self.Q.fin_stat: stat = False 
+
+        self.Q.check_fin_stat()
+
+        if self.Q.fin_stat: 
+            self.Q.act_hyp.flush_queue(clear_first=True) 
+        return self.Q.fin_stat 
 
     def process_one_hyp(self): 
 
         h,node_res_seq,q,fin_stat  = self.Q.process_next_hyp(self.action_graph_op,self.action_graph)
 
         # case: finished 
-        if fin_stat: 
-            self.Q.act_hyp.flush_queue() 
+        if fin_stat:
+            self.Q.act_hyp.flush_queue(clear_first=True) 
             return None 
 
         # case: hypothesis reached end of actions 
@@ -160,7 +167,7 @@ class FalseQuestionTypeSP:
         lfeedback,cfeedback = self.subject.respond_to_Q_hyp(q,self.action_graph,\
             self.action_graph_op,h.tail(),node_res_seq,q_hs_hyp)
 
-        self.Q.recv_lfeedback(lfeedback,cfeedback)
+        self.Q.recv_feedback(lfeedback,cfeedback)
 
         p_response = self.subject.paths_for_response() 
 
@@ -208,3 +215,38 @@ class FalseQuestionTypeSP:
         Q = FQQuestionerTypeSP(cat_set,initial_hs_hyp,prg2) 
 
         return FalseQuestionTypeSP(Q,subject,A,op)
+
+    #------------------------------------ scoring functions for Subject objectives 
+
+    def obj_1_score(self): 
+        actual_map = self.subject.de_secret.secret_path_map()
+        predicted_map = self.Q.current_hidden_state_hyp()
+
+        matches = set() 
+        for k,v in actual_map.items(): 
+            if k in predicted_map: 
+                if predicted_map[k] == v: 
+                    matches |= {k} 
+        return matches,len(actual_map)
+
+    """
+    return:
+    - [0] number of node matches over moves,
+      [1] total number of moves,
+      [2] size of Q's hypothesis on S' action path. 
+    """
+    def obj_2_score(self): 
+        X = self.Q.current_action_sequence_hyp()
+
+        q_hyp_size = 1 
+        num_matches = 0 
+        for k,v in X.items(): 
+            actual = self.subject.tpath[k]
+            
+            q_hyp_size *= len(v) 
+
+            if actual in v: 
+                num_matches += 1 
+
+        return num_matches,len(self.subject.tpath),q_hyp_size
+

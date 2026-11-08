@@ -76,6 +76,9 @@ class FQSubjectTypeSP:
         self.current_l2r_path_demand = None  
 
         self.fin_stat = False 
+
+        # sequence of nodes subject travels over 
+        self.tpath = [] 
         return 
 
     """
@@ -92,6 +95,7 @@ class FQSubjectTypeSP:
         i = int(self.prg()) % len(q)
         
         self.loc = q[i]
+        self.tpath.append(q[i])
         return q[i] 
 
     """
@@ -188,6 +192,7 @@ class FQSubjectTypeSP:
             return self.fin_stat 
 
         self.loc = next_node 
+        self.tpath.append(next_node) 
         return self.fin_stat 
 
     """
@@ -314,10 +319,16 @@ class FQQuestionerTypeSP:
         self.q_idn = None 
             # used to store the response of probable secret paths from asking 
             # on hypothesis 
-        # state -> label -> count 
+            # state -> label -> count 
         self.tmp_s2l2c_map = dict() 
+            # tail node idn -> 
+            #   [0] confirmation on location
+            #   [1] confirmation on paths on hidden state category
+            # *** every hypothesis is associated with a unique tail node 
+        self.tail2fb_map = dict() 
 
         self.fin_stat = False 
+        self.num_hyp_deltas = 0 
         return 
 
     def increment_timestamp(self): 
@@ -325,6 +336,16 @@ class FQQuestionerTypeSP:
 
     def current_hidden_state_hyp(self): 
         return self.hs_hyp_mach.state_induction()
+
+    def current_action_sequence_hyp(self): 
+        return self.act_hyp.path_hypothesis() 
+
+    """
+    method called after all hypotheses have been updated 
+    """
+    def check_fin_stat(self): 
+        if self.num_hyp_deltas == 0: 
+            self.fin_stat = True 
 
     #------------------------------------ used for calculating next hypotheses on action 
 
@@ -343,7 +364,7 @@ class FQQuestionerTypeSP:
         if self.fin_stat: 
             return None,None,None,True 
 
-        # case: no more hypotheses 
+        # case: no more hypotheses (unused) 
         if len(self.act_hyp) == 0: 
             return None,None,None,True 
 
@@ -357,7 +378,7 @@ class FQQuestionerTypeSP:
 
         # case: reached end of action graph 
         if type(node_res_seq) == type(None): 
-            return None,None,None,False  
+            return None,None,None,False   
 
         # choose a question to ask 
         q = self.choose_question() 
@@ -371,6 +392,8 @@ class FQQuestionerTypeSP:
 
         # load next node into queue 
         self.p_next_node = node_res_seq[0][0] 
+
+        self.num_hyp_deltas += 1 
         return deepcopy(h),node_res_seq,q,False 
 
     def choose_question(self): 
@@ -469,6 +492,8 @@ class FQQuestionerTypeSP:
     def reset_iter(self): 
         self.hyp_index = 0 
         self.fin_iter_stat = False 
+        self.tail2fb_map.clear() 
+        self.num_hyp_deltas = 0 
 
     def reset_hyp_delta_vars(self): 
         self.hyp_in_queue = None 
@@ -476,7 +501,7 @@ class FQQuestionerTypeSP:
         self.lfeedback = None 
         self.cfeedback = None 
         self.q_idn = None 
-        self.tmp_s2l2c_map = dict() 
+        self.tmp_s2l2c_map.clear() 
 
         for c in self.hs_hyp_mach.state_set: 
             self.tmp_s2l2c_map[c] = defaultdict(int) 
@@ -484,12 +509,13 @@ class FQQuestionerTypeSP:
     #-----------------------------------------  receiving feedback from subject: probable labelsets of hidden state
     #-----------------------------------------  and context on actions. 
 
-    def recv_lfeedback(self,lfeedback,cfeedback): 
+    def recv_feedback(self,lfeedback,cfeedback): 
         assert type(lfeedback) in {type(None),bool}
         assert type(cfeedback) in {type(None),bool}
 
         self.lfeedback = lfeedback 
         self.cfeedback = cfeedback
+        self.tail2fb_map[self.p_next_node] = (self.lfeedback,self.cfeedback)
 
     """
     processes a <NodePath> from subject, into the 
@@ -508,7 +534,7 @@ class FQQuestionerTypeSP:
     concluding step after posing hypothesis question 
     """
     def h_conclusion(self): 
-        # case: certainty that most dominant and questions remaining 
+        # case: certainty of most dominant being correct and questions remaining 
         if self.cfeedback == True and type(self.q_idn) != type(None): 
             l2v = self.tmp_s2l2c_map[self.q_idn]
             l2v_ = [(k,v) for k,v in l2v.items()]
@@ -522,12 +548,12 @@ class FQQuestionerTypeSP:
         self.hs_hyp_mach.update_induction() 
 
         # update path and add it back to memory 
-        self.act_hyp.delete_path(self.hyp_in_queue) 
+        ##self.act_hyp.delete_path(self.hyp_in_queue) 
 
         w = 0 
         # case: location feedback outputs True -> mark node as relevant 
         if self.lfeedback == True: 
             w = 1 
 
-        P = self.act_hyp.update_path(self.hyp_in_queue,self.p_next_node,w)
+        P = self.act_hyp.update_path(deepcopy(self.hyp_in_queue),self.p_next_node,w)
         return self.act_hyp.add_path_to_mem(P)

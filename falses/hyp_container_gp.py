@@ -21,6 +21,8 @@ NOTE: the data structure keeps track of relevant nodesets
       that tail node is relevant. 0-weights are used to 
       signify uncertainty or incorrectness. 
 """
+# NOTE: caution with using this class outside of False Question 
+#       Type SP. It has not been thoroughly unit-tested yet. 
 class HypothesisContainerTypeGP:
 
     def __init__(self,num_paths_per_tail_node=float('inf')): 
@@ -37,7 +39,36 @@ class HypothesisContainerTypeGP:
         # timestamp -> nodeset, used to keep track of marked nodes per timestamp 
         self.tstamp2nodeset = defaultdict(set)
         self.t_index = 0 
+
+        # hypothesis container for path 
+        #   index -> set of probable nodes that object may have been on. 
+        self.path_hyp = defaultdict(set) 
         return 
+
+    """
+    uses the existing paths in `gpaths` to filter the probable|certain nodes 
+    collected at every index in `path_hyp`. 
+    """
+    def path_hypothesis(self): 
+        l = sorted(set(self.path_hyp.keys()))
+        D = {} 
+        for i in l: 
+            D[i] = self.path_nodes_at_index(i).intersection(self.path_hyp[i])
+        return D 
+    """
+    iterates through all paths in `gpaths`, and collects 
+    every i'th node of the paths into a set. 
+    """
+    def path_nodes_at_index(self,index):
+        nodeset = set()  
+        for p in self.gpaths: 
+            try: 
+                x = p[index]
+                nodeset |= {x} 
+            except: 
+                pass 
+        return nodeset 
+
 
     def display_paths(self,display_mode:int=0):
         assert display_mode in {0,1,2}
@@ -77,6 +108,8 @@ class HypothesisContainerTypeGP:
             P = NodePath(n) 
             self.tail2paths[n] = [P]
             self.gpaths.append(P) 
+        
+        self.path_hyp[self.t_index] = set(nodes) 
         return 
 
     def delete_path(self,P,t2p_index=None,p2s_index=None): 
@@ -95,10 +128,12 @@ class HypothesisContainerTypeGP:
 
         if type(p2s_index) == type(None): 
             p2s_index = self.path_to_seq_index(P) 
-            assert p2s_index != -1 
+            #assert p2s_index != -1 
         else: 
             assert P == self.gpaths[p2s_index] 
-        self.gpaths.pop(p2s_index)
+
+        if p2s_index != -1: 
+            self.gpaths.pop(p2s_index)
         return
 
     def path_to_t2p_index(self,P): 
@@ -184,15 +219,61 @@ class HypothesisContainerTypeGP:
             self.delete_path(P,l-1,None)
             l = len(self.tail2paths[t])
 
-    def flush_queue(self):
+    """
+    method called after every hypothesis has been 
+    updated. Depending on usage of this class, `gpaths` 
+    may or may not be empty of its hypotheses before 
+    `gpaths_queue` added back into it. 
+    """
+    def flush_queue(self,clear_first:bool=False):
+        # case: nothing in queue 
+        if len(self.gpaths_queue) == 0: 
+            return 
+            
+        if clear_first:
+            self.gpaths.clear() 
+
         while len(self.gpaths_queue): 
             p = self.gpaths_queue.pop(0)
             t = p.tail() 
-            
+
             # case: path was not added because of tail limit 
             if p not in self.tail2paths[t]: 
                 continue 
             self.gpaths.append(p) 
+
+        self.update_path_hyp()
+        return 
+
+    """
+    Updates the running path hypothesis with nodes marked as certain 
+    XOR probable nodes in the case of no certainty. 
+
+    Assumes not all paths in `gpaths` have to be of equal length. 
+    """
+    # NOTE: this method is called after applying delta to every 
+    #       current hypothesis. It does not go back through the 
+    #       previous timestamps to revise answers. 
+    def update_path_hyp(self): 
+        
+        l2certainty = defaultdict(set) 
+        for x in self.gpaths: 
+            q = len(x) - 1
+
+            # certain 
+            if x.pweights[-1] == 1.0: 
+                l2certainty[q] |= {x.tail()} 
+
+        for k,v in l2certainty.items(): 
+            self.path_hyp[k] |= v 
+
+        for x in self.gpaths: 
+            q = len(x) - 1 
+
+            # case: no certainty at all on the paths
+            #       
+            if len(l2certainty[q]) == 0: 
+                self.path_hyp[q] |= {x.tail()} 
         return 
 
     def increment_timestamp(self): 
