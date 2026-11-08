@@ -53,7 +53,7 @@ class StateInductionTypeMFUC:
 
     def update_certainty(self,s2c_map): 
         assert type(s2c_map) == dict 
-        assert set(s2c_map.keys()).issubset(self.category_set)
+        assert set(s2c_map.keys()).issubset(self.state_set)
 
         for k,v in s2c_map.items(): 
             assert type(v) == bool 
@@ -63,13 +63,12 @@ class StateInductionTypeMFUC:
     def set_certain_category(self,c,l):
         assert c in self.state_set
         assert type(l) != type(None) 
-
         self.s2c_map[c] = True 
         self.current_hyp[c] = l  
         return 
 
     def max_labelset_for_category(self,c): 
-        assert c in self.category_set
+        assert c in self.state_set
 
         if c not in self.fmap: 
             return None 
@@ -80,11 +79,12 @@ class StateInductionTypeMFUC:
         l2v = [(k,v) for k,v in d.items()] 
 
         lset = min_or_max_rank_in_sequence(l2v,vf=lambda x:x[1],is_min_rank=False)
+        lset = [l[0] for l in lset] 
         return set(lset) 
 
     def add_frequencies_to_category(self,c,f:dict): 
-        assert c in self.category_set
-        assert type(f) == dict 
+        assert c in self.state_set
+        assert type(f) in {dict,defaultdict}
 
         if c not in self.fmap: 
             self.fmap[c] = defaultdict(int) 
@@ -95,12 +95,11 @@ class StateInductionTypeMFUC:
         return 
 
     def update_induction(self): 
-        rem_cats = self.category_set - set(self.s2c_map.keys()) 
-
+        rem_cats = self.uncertain_states()
         for c in rem_cats: 
-            q = self.max_label_for_category(c)
-            self.current_hyp[c] = q 
-
+            q = self.max_labelset_for_category(c)
+            if type(q) != type(None): 
+                self.current_hyp[c] = q 
         return 
 
     def state_induction(self): 

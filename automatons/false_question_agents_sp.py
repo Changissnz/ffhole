@@ -371,7 +371,7 @@ class FQQuestionerTypeSP:
 
         # load next node into queue 
         self.p_next_node = node_res_seq[0][0] 
-        return h,node_res_seq,q,False 
+        return deepcopy(h),node_res_seq,q,False 
 
     def choose_question(self): 
         q0,q1 = self.hs_hyp_mach.active_questions()
@@ -516,6 +516,12 @@ class FQQuestionerTypeSP:
             lset = set([l[0] for l in lset]) 
             self.hs_hyp_mach.set_certain_category(self.q_idn,lset) 
 
+        # add frequencies in cache to `hs_hyp_mach`
+        for c,f in self.tmp_s2l2c_map.items():
+            self.hs_hyp_mach.add_frequencies_to_category(c,f) 
+        self.hs_hyp_mach.update_induction() 
+
+        # update path and add it back to memory 
         self.act_hyp.delete_path(self.hyp_in_queue) 
 
         w = 0 
@@ -523,6 +529,5 @@ class FQQuestionerTypeSP:
         if self.lfeedback == True: 
             w = 1 
 
-        # update path and add it back to memory 
         P = self.act_hyp.update_path(self.hyp_in_queue,self.p_next_node,w)
         return self.act_hyp.add_path_to_mem(P)

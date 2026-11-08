@@ -23,17 +23,15 @@ NOTE: the data structure keeps track of relevant nodesets
 """
 class HypothesisContainerTypeGP:
 
-    def __init__(self,gpaths=None,num_paths_per_tail_node=float('inf')): 
-        if type(gpaths) == type(None): 
-            gpaths = [] 
-        for x in gpaths: assert type(x) == NodePath 
+    def __init__(self,num_paths_per_tail_node=float('inf')): 
         assert num_paths_per_tail_node >= 1 
 
-        self.gpaths = gpaths 
+        self.gpaths = []  
         # contains deltas from <NodePath>s in `gpaths`
         self.gpaths_queue = [] 
         self.paths_per_tail = num_paths_per_tail_node
 
+        # node idn -> list of paths 
         self.tail2paths = dict() 
         
         # timestamp -> nodeset, used to keep track of marked nodes per timestamp 
@@ -49,9 +47,9 @@ class HypothesisContainerTypeGP:
                 print("* ",len(p)) 
                 return 
             if display_mode == 1: 
-                print("* ",p) 
+                print("* ",p.p) 
                 return     
-            print("* ",p.p)
+            print("* ",p)
 
         for x in self.gpaths: 
             f(x) 
@@ -88,10 +86,12 @@ class HypothesisContainerTypeGP:
             #assert t2p_index != -1 
         else: 
             assert P.tail() in self.tail2paths 
-            assert self.tail2paths[P.tail()] == t2p_index
+            assert self.tail2paths[P.tail()][t2p_index] == P 
         
         if t2p_index != -1: 
             self.tail2paths[P.tail()].pop(t2p_index)
+            if len(self.tail2paths[P.tail()]) == 0: 
+                del self.tail2paths[P.tail()]
 
         if type(p2s_index) == type(None): 
             p2s_index = self.path_to_seq_index(P) 
@@ -104,7 +104,7 @@ class HypothesisContainerTypeGP:
     def path_to_t2p_index(self,P): 
         assert type(P) == NodePath 
         t = P.tail()
-        assert t in self.tail2paths
+        if t not in self.tail2paths: return -1 
 
         for (i,p) in enumerate(self.tail2paths[t]): 
             if p == P: 
@@ -174,14 +174,24 @@ class HypothesisContainerTypeGP:
             self.tail2paths[t].append(P) 
             index = len(self.tail2paths[t]) - 1 
 
-        while len(self.tail2paths[t]) > self.paths_per_tail: 
-            self.tail2paths[t].pop(-1) 
-
+        self.reduce_tails(t) 
         return index < self.paths_per_tail
+
+    def reduce_tails(self,t): 
+        l = len(self.tail2paths[t])
+        while len(self.tail2paths[t]) > self.paths_per_tail: 
+            P = self.tail2paths[t][l-1]
+            self.delete_path(P,l-1,None)
+            l = len(self.tail2paths[t])
 
     def flush_queue(self):
         while len(self.gpaths_queue): 
             p = self.gpaths_queue.pop(0)
+            t = p.tail() 
+            
+            # case: path was not added because of tail limit 
+            if p not in self.tail2paths[t]: 
+                continue 
             self.gpaths.append(p) 
         return 
 
