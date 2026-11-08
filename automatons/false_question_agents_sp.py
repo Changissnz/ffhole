@@ -273,6 +273,15 @@ class FQSubjectTypeSP:
     def location_feedback(self,agraph:ActionGraphTypeDAGLT,q_hs_hyp,node):
         return agraph.boolean_output(node,q_hs_hyp)
 
+"""
+(F)alse (Q)uestion Subject Type (S)ecret (P)reservation. 
+
+Questioner objective is of two parts: 
+- uncovering the hidden state of subject (possibilities make up a directed acyclic graph) 
+    [done through <StateInductionTypeMFUC>]. 
+- determining the actions that subject took (traversal through a directed acyclic graph), 
+    throughout the course of interaction [done through <HypothesisContainerTypeGP>]. 
+"""
 class FQQuestionerTypeSP: 
 
     def __init__(self,category_set:set,initial_hs_hyp:defaultdict,prg):  

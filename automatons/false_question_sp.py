@@ -37,13 +37,14 @@ The partitioning of the paths is fixated on question c:
 NOTE: see description of class<FQSubjectTypeSP> in file<false_question_agents_sp>. 
       In loose terms, if the predicted next node n_c is the node that `S` would have 
       taken if it were at n_r, then the number of paths in PART(m) with the correct 
-      label set for category c is dominant. In frequency analysis done by `Q`, the 
-      most frequent label set it obtains through registering these responses of m <NodePath>s 
-      is its hypothesis on the label set of `c`. The <StateInductionTypeMFUC> is the 
-      process that `Q` uses for frequency analysis. In the case where question `c` has 
-      already been marked as certain in answer, `Q` chooses that respective label set 
-      marked certain instead of the most frequency label set, calculated through the 
-      <NodePath>s it receives from `S`. 
+      label set for category c is dominant. Otherwise, there is an index shift along the 
+      ordering of label sets, w.r.t. the ratios of the 1.0 partition. In frequency analysis 
+      done by `Q`, the most frequent label set it obtains through registering these responses 
+      of m <NodePath>s is its hypothesis on the label set of `c`. The <StateInductionTypeMFUC> 
+      is the process that `Q` uses for frequency analysis. In the case where question `c` 
+      has already been marked as certain in answer, `Q` chooses that respective label 
+      set marked certain instead of the most frequency label set, calculated through 
+      the <NodePath>s it receives from `S`. 
 
 The current hypothesis H_h of `Q` on the hidden state of `S` is the determinant on the 
 activation of the node n_r. For any node n_i of G_a, the hidden state hypothesis H_h is 
@@ -74,7 +75,7 @@ NOTE: boolean [0] confirms what nodes of the action hypotheses certainly are the
             **Objective** 
 
 The traversal of `S` through Action Graph G_a allows for questioner `Q` to uncover the hidden 
-state (full or partial) of `S`. The discovery of `S`' hidden state is objective #1 for `Q`. 
+state (full or partial) of `S`. The uncovering of `S`' hidden state is objective #1 for `Q`. 
 
 `Q`'s objective #2 is to correctly identify the actions (nodes) that `S` took in its entire 
 traversal of G_a. 
