@@ -100,12 +100,21 @@ class FalseQuestionTypeSP:
 
         self.preproc()
         self.fin_stat = False 
+
+        self.Q_max_obj_1 = len(self.obj_1_score(full_output=False)[0]) 
+        self.Q_max_obj_1_t_index = 0 
         return 
 
     def preproc(self): 
         self.subject.first_move(self.action_graph)
         self.Q.act_hyp.load_starting_nodes(deepcopy(self.action_graph.l2n_map[0]))
         return
+
+    def update_score_record(self): 
+        q = len(self.obj_1_score(full_output=False)[0])
+        if q > self.Q_max_obj_1: 
+            self.Q_max_obj_1 = q
+            self.Q_max_obj_1_t_index = self.Q.act_hyp.t_index 
 
     def __next__(self): 
 
@@ -118,6 +127,8 @@ class FalseQuestionTypeSP:
 
         # have `subject` make its action on action graph 
         stat2 = self.subject.next_action(self.action_graph,self.action_graph_op)
+
+        self.update_score_record() 
 
         self.fin_stat = self.subject.fin_stat and self.Q.fin_stat 
         return  
@@ -176,6 +187,56 @@ class FalseQuestionTypeSP:
             self.Q.recv_probable_secret(M) 
         return self.Q.h_conclusion() 
 
+
+    #------------------------------------ scoring functions for Subject objectives 
+
+    """
+    return: 
+    - full_output = True -> 
+        [0] set of categories that Q knows 
+        [1] timestamp that Q acquired knowledge on the highest number of categories 
+        [2] number of categories 
+      full_output = False -> 
+        [0] set of categories that Q knows 
+        [1] number of categories 
+    """
+    def obj_1_score(self,full_output:bool=False): 
+        actual_map = self.subject.de_secret.secret_path_map()
+        predicted_map = self.Q.current_hidden_state_hyp()
+
+        matches = set() 
+        for k,v in actual_map.items(): 
+            if k in predicted_map: 
+                if predicted_map[k] == v: 
+                    matches |= {k} 
+        
+        if full_output: 
+            return matches,self.Q_max_obj_1_t_index,len(actual_map)
+        return matches,len(actual_map)
+
+    """
+    return:
+    - [0] number of node matches over moves,
+      [1] total number of moves,
+      [2] size of Q's hypothesis on S' action path. 
+    """
+    def obj_2_score(self): 
+        X = self.Q.current_action_sequence_hyp()
+
+        q_hyp_size = 1 
+        num_matches = 0 
+        for k,v in X.items(): 
+            actual = self.subject.tpath[k]
+            
+            q_hyp_size *= len(v) 
+
+            if actual in v: 
+                num_matches += 1 
+
+        return num_matches,len(self.subject.tpath),q_hyp_size
+
+    #--------------------------------------------------------------------- 
+
     @staticmethod 
     def generate_std_instance(initial_q_hypothesis_correct_ratio,prg): 
 
@@ -215,38 +276,3 @@ class FalseQuestionTypeSP:
         Q = FQQuestionerTypeSP(cat_set,initial_hs_hyp,prg2) 
 
         return FalseQuestionTypeSP(Q,subject,A,op)
-
-    #------------------------------------ scoring functions for Subject objectives 
-
-    def obj_1_score(self): 
-        actual_map = self.subject.de_secret.secret_path_map()
-        predicted_map = self.Q.current_hidden_state_hyp()
-
-        matches = set() 
-        for k,v in actual_map.items(): 
-            if k in predicted_map: 
-                if predicted_map[k] == v: 
-                    matches |= {k} 
-        return matches,len(actual_map)
-
-    """
-    return:
-    - [0] number of node matches over moves,
-      [1] total number of moves,
-      [2] size of Q's hypothesis on S' action path. 
-    """
-    def obj_2_score(self): 
-        X = self.Q.current_action_sequence_hyp()
-
-        q_hyp_size = 1 
-        num_matches = 0 
-        for k,v in X.items(): 
-            actual = self.subject.tpath[k]
-            
-            q_hyp_size *= len(v) 
-
-            if actual in v: 
-                num_matches += 1 
-
-        return num_matches,len(self.subject.tpath),q_hyp_size
-
