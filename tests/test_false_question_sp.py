@@ -1,5 +1,6 @@
 from automatons.false_question_sp import * 
-from morebs2.numerical_generator import prg_to_prg__LCG_sequence__v2
+from morebs2.numerical_generator import prg_to_prg__LCG_sequence__v2,merge_two_prgs
+from morebs2.measures import zero_div_
 import unittest
 
 ###
@@ -133,7 +134,7 @@ class FalseQuestionTypeSPMethods(unittest.TestCase):
     knows all categories for subject's hidden state. 
     """
     def test__FalseQuestionTypeSP__next__case_2(self): 
-
+        print("\t\t** False Question Type SP: Case #2")
         initial_q_hypothesis_correct_ratio = 0.2 
         prg = prg__LCG(3435.78,-4514.141,152.62,9843.61)
 
@@ -141,13 +142,43 @@ class FalseQuestionTypeSPMethods(unittest.TestCase):
 
         while not F.fin_stat:  
             next(F) 
-            
+            '''
             F.Q.act_hyp.display_paths(1) 
             print()
             print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n" * 2) 
+            '''
 
         assert F.obj_1_score() == ({0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, 10)
         assert F.obj_2_score() == (114, 139, 1)
+
+    """
+    Questioner uncovers 5/21 categories of subject's hidden state. 
+    Questioner knows 21/126 actions taken by subject. 
+    """
+    def test__FalseQuestionTypeSP__next__case_3(self): 
+        print("\t\t** False Question Type SP: Case #3")
+        initial_q_hypothesis_correct_ratio = 0.2 
+        prg0 = prg__LCG(3435.78,-4514.141,152.62,9843.61)
+        prg1 = prg_to_LCG_stack(prg0,5,[add,sub])
+        prg2 = prg_to_LCG_stack(prg1,3,[zero_div_,add]) 
+        prg = merge_two_prgs(prg1,prg2,add) 
+
+        F = FalseQuestionTypeSP.generate_std_instance(initial_q_hypothesis_correct_ratio,prg)
+
+        score_0 = F.obj_1_score(True)
+        assert len(score_0[0]) == 5 == ceil(score_0[1] * initial_q_hypothesis_correct_ratio) 
+        assert score_0[1] == 21
+        assert score_0[2] == 0 
+
+        while not F.fin_stat:  
+            F.Q.act_hyp.display_paths(1)
+            next(F) 
+
+        score_01 = F.obj_1_score(True) 
+        assert len(score_01[0]) == 6 
+        assert score_01[1] == 21
+        assert score_01[2] == 126
+        assert F.obj_2_score() == (26, 145, 1)
 
 if __name__ == '__main__':
     unittest.main()

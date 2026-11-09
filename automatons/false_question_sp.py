@@ -103,14 +103,20 @@ class FalseQuestionTypeSP:
     def preproc(self): 
         self.subject.first_move(self.action_graph)
         self.Q.act_hyp.load_starting_nodes(deepcopy(self.action_graph.l2n_map[0]))
-        return
+        return     
 
-    def update_score_record(self): 
-        q = len(self.obj_1_score(full_output=False)[0])
-        if q > self.Q_max_obj_1: 
-            self.Q_max_obj_1 = q
-            self.Q_max_obj_1_t_index = self.Q.act_hyp.t_index 
+    def set_prg(self,prg,is_subject:bool): 
+        assert type(prg) in {MethodType,FunctionType} 
+        assert type(is_subject) == bool 
 
+        if is_subject: 
+            self.subject.prg = prg 
+        else: 
+            self.Q.prg = prg         
+
+    """
+    main method #1
+    """
     def __next__(self): 
 
         if self.fin_stat: return 
@@ -182,15 +188,20 @@ class FalseQuestionTypeSP:
             self.Q.recv_probable_secret(M) 
         return self.Q.h_conclusion() 
 
-
     #------------------------------------ scoring functions for Subject objectives 
+
+    def update_score_record(self): 
+        q = len(self.obj_1_score(full_output=False)[0])
+        if q > self.Q_max_obj_1: 
+            self.Q_max_obj_1 = q
+            self.Q_max_obj_1_t_index = self.Q.act_hyp.t_index 
 
     """
     return: 
     - full_output = True -> 
         [0] set of categories that Q knows 
-        [1] timestamp that Q acquired knowledge on the highest number of categories 
-        [2] number of categories 
+        [1] number of categories 
+        [2] first,timestamp that Q acquired knowledge on the highest number of categories 
       full_output = False -> 
         [0] set of categories that Q knows 
         [1] number of categories 
@@ -206,7 +217,7 @@ class FalseQuestionTypeSP:
                     matches |= {k} 
         
         if full_output: 
-            return matches,self.Q_max_obj_1_t_index,len(actual_map)
+            return matches,len(actual_map),self.Q_max_obj_1_t_index
         return matches,len(actual_map)
 
     """
