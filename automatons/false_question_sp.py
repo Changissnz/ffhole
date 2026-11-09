@@ -54,12 +54,7 @@ For every category c in C_i, if H_h[c] equals M_t[c], then the boolean for c is 
 Then activation occurs if  
     (B_i * W_i) >= sum(W_i) * t_i; t_i an arbitrary real number in [0.,1.]. 
 
-If node n_r is activated, `S` transmits the following information, as part of feedback response, 
-to `Q`:  
-- a question on a category of `S`' hidden state, 
-- a current node n_r (the tail node of an action hypotheses), 
-- its current hypothesis on the hidden state of `S`, used to determine if n_r is activated: 
-  boolean outputs of TRUE forces `S` to send back boolean confirmation: 
+Boolean outputs of TRUE (activation) forces `S` to send back boolean confirmation: 
     [0] if n_r is the current node that `S` is at,
     [1] if n_r would have been the next node that `S` travels to if it were at. 
 NOTE: boolean [0] confirms what nodes of the action hypotheses certainly are the action 
