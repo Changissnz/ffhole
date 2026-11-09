@@ -152,7 +152,7 @@ class FalseQuestionTypeSPMethods(unittest.TestCase):
         assert F.obj_2_score() == (114, 139, 1)
 
     """
-    Questioner uncovers 5/21 categories of subject's hidden state. 
+    Questioner uncovers 6/21 categories of subject's hidden state. 
     Questioner knows 21/126 actions taken by subject. 
     """
     def test__FalseQuestionTypeSP__next__case_3(self): 
@@ -172,6 +172,7 @@ class FalseQuestionTypeSPMethods(unittest.TestCase):
 
         while not F.fin_stat:  
             F.Q.act_hyp.display_paths(1)
+            print()
             next(F) 
 
         score_01 = F.obj_1_score(True) 
@@ -179,6 +180,40 @@ class FalseQuestionTypeSPMethods(unittest.TestCase):
         assert score_01[1] == 21
         assert score_01[2] == 126
         assert F.obj_2_score() == (26, 145, 1)
+
+    """
+    False Question Type SP case is the same as Case #2, except Questioner operates with 
+    another PRNG. Results demonstrate performance differences. 
+
+            The End Results: 
+    Questioner knows 15/139 actions taken by subject. Questioner knows 5/10 categories 
+    for subject's hidden state. 
+    """
+    def test__FalseQuestionTypeSP__next__case_4(self): 
+        print("\t\t** False Question Type SP: Case #4")
+
+        initial_q_hypothesis_correct_ratio = 0.2 
+        prg = prg__LCG(3435.78,-4514.141,152.62,9843.61)
+
+        F = FalseQuestionTypeSP.generate_std_instance(initial_q_hypothesis_correct_ratio,prg)
+
+        prg1 = prg_to_LCG_stack(prg,5,[add,sub])
+        prg2 = prg_to_LCG_stack(prg1,3,[zero_div_,add]) 
+        F.set_prg(prg2,False) 
+
+        score_0 = F.obj_1_score(True)
+        assert score_0 == ({2, 5}, 10, 0)
+
+        while not F.fin_stat:  
+            next(F) 
+            #F.Q.act_hyp.display_paths(1) 
+
+        score_01 = F.obj_1_score(True) 
+        score_11 = F.obj_2_score() 
+
+        assert score_01 == ({5, 6, 7, 8, 9}, 10, 131)
+        assert score_11 == (15, 139, 1) 
+
 
 if __name__ == '__main__':
     unittest.main()
