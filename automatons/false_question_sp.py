@@ -247,6 +247,10 @@ class FalseQuestionTypeSP:
 
     #--------------------------------------------------------------------- 
 
+    """
+    NOTE: set act_function_type to 2 for the Action Graph activation functions to rely on 
+          more complex PRNGs. 
+    """ 
     @staticmethod 
     def generate_std_instance(initial_q_hypothesis_correct_ratio,prg,act_function_type:int=1): 
         assert act_function_type in {1,2}
