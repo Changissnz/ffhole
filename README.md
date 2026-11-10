@@ -11,5 +11,5 @@ A series of algorithms that model the means and effects of false feedbacks.
 - [tested] False Incompetency  
 - [pending] False Question  
     - [tested] Type DD: Delay and Divert  
-    - [pending] Type SP: Secret Preservation  
+    - [tested] Type SP: Secret Preservation  
 - [pending] False Claim 
