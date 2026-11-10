@@ -1,4 +1,5 @@
 from xFS_bots.graph_models.node_path import * 
+from morebs2.numerical_generator import prg_seqsort_ties
 
 """
 Hypothesis Container Type (G)raph (P)aths.
@@ -162,9 +163,9 @@ class HypothesisContainerTypeGP:
         P.append(next_node,next_weight)
         return P 
 
-    def add_path_to_mem(self,P): 
+    def add_path_to_mem(self,P,prg=None): 
 
-        stat = self.add_path_to_t2p_map(P) 
+        stat = self.add_path_to_t2p_map(P,prg) 
 
         # case: path is not added because tail limit 
         #       reached 
@@ -191,7 +192,7 @@ class HypothesisContainerTypeGP:
     return:
     - ?is path `P` added? 
     """
-    def add_path_to_t2p_map(self,P): 
+    def add_path_to_t2p_map(self,P,prg=None): 
         t = P.tail()
 
         if t not in self.tail2paths: 
@@ -208,6 +209,16 @@ class HypothesisContainerTypeGP:
         if type(index) == type(None): 
             self.tail2paths[t].append(P) 
             index = len(self.tail2paths[t]) - 1 
+
+        # case: PRNG is present, resort paths for ties 
+        if type(prg) != type(None): 
+            q = prg_seqsort_ties(self.tail2paths[t],prg,vf=lambda x: x.cost()) 
+            index = None 
+            for (i,q_) in enumerate(q): 
+                if q_ == P: 
+                    index = i 
+                    break 
+            self.tail2paths[t] = q 
 
         self.reduce_tails(t) 
         return index < self.paths_per_tail
@@ -229,7 +240,7 @@ class HypothesisContainerTypeGP:
         # case: nothing in queue 
         if len(self.gpaths_queue) == 0: 
             return 
-            
+
         if clear_first:
             self.gpaths.clear() 
 

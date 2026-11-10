@@ -556,4 +556,4 @@ class FQQuestionerTypeSP:
             w = 1 
 
         P = self.act_hyp.update_path(deepcopy(self.hyp_in_queue),self.p_next_node,w)
-        return self.act_hyp.add_path_to_mem(P)
+        return self.act_hyp.add_path_to_mem(P,self.prg)

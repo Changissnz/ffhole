@@ -226,11 +226,12 @@ class FalseQuestionTypeSP:
       [1] total number of moves,
       [2] size of Q's hypothesis on S' action path. 
     """
-    def obj_2_score(self): 
+    def obj_2_score(self,full_output:bool=False): 
         X = self.Q.current_action_sequence_hyp()
 
         q_hyp_size = 1 
         num_matches = 0 
+        matched_indices = [] 
         for k,v in X.items(): 
             actual = self.subject.tpath[k]
             
@@ -238,27 +239,36 @@ class FalseQuestionTypeSP:
 
             if actual in v: 
                 num_matches += 1 
+                matched_indices.append(k) 
 
+        if full_output: 
+            return matched_indices,len(self.subject.tpath),q_hyp_size
         return num_matches,len(self.subject.tpath),q_hyp_size
 
     #--------------------------------------------------------------------- 
 
     @staticmethod 
-    def generate_std_instance(initial_q_hypothesis_correct_ratio,prg): 
+    def generate_std_instance(initial_q_hypothesis_correct_ratio,prg,act_function_type:int=1): 
+        assert act_function_type in {1,2}
 
         # generate the DAG secret 
         sspace = SecretSpaceTypeDAG.generate_std_instance(prg)
 
         # generate the action graph 
         s2l_map = sspace.secret_path_map()
-        A = ActionGraphTypeDAGLT.generate_std_instance(prg,s2l_map)
+        A = ActionGraphTypeDAGLT.generate_std_instance(prg,s2l_map,naic_type=act_function_type)
 
         # generate the graph traversal operator for the action graph
         cycle_length = modulo_in_range(int(prg()),[15,30])
         prg_ = prg_to_LCG_stack(prg,2,[add,sub])
 
-        L = [int(prg_()) for _ in range(14)] 
-        N = NoiseAddedIterableContainer(L,None)  
+        if act_function_type == 1: 
+            N = generate_PRNG_struct__type_NAIC(prg_,cycle_length)
+        else: 
+            N = generate_PRNG_struct__type_NAIC_V2(prg_,cycle_length) 
+
+        #L = [int(prg_()) for _ in range()] 
+        #N = NoiseAddedIterableContainer(L,None)  
 
         op = DAGTraversalFunctionTypeHSD(sspace.dag,N)
 
