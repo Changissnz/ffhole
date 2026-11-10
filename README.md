@@ -9,7 +9,7 @@ A series of algorithms that model the means and effects of false feedbacks.
 
 - [tested] False Entry  
 - [tested] False Incompetency  
-- [pending] False Question  
+- [tested] False Question  
     - [tested] Type DD: Delay and Divert  
     - [tested] Type SP: Secret Preservation  
 - [pending] False Claim 
