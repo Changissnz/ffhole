@@ -129,6 +129,9 @@ class FalseQuestionTypeDD:
         # cumulative path difference between subject's traversed paths 
         # and solution paths. 
         self.cumulative_path_score = 0 
+
+        # 
+        self.prev_q_chain_size = None 
         return 
 
     """
@@ -175,9 +178,10 @@ class FalseQuestionTypeDD:
     starts the questioning round 
     """
     def start_q_chain(self): 
-
+        self.prev_q_chain_size = 0 
         A = self.fas.first_q_agent()
         self.exec_q(A,self.fs) 
+        self.prev_q_chain_size += 1 
         return
 
     """
@@ -204,6 +208,7 @@ class FalseQuestionTypeDD:
         
         if self.verbose: 
             print("==================================")
+        self.prev_q_chain_size += 1 
         return 
 
     """
