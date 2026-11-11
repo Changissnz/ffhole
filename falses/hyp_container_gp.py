@@ -184,8 +184,9 @@ class HypothesisContainerTypeGP:
 
         # add tail node of P if its weight=1 marks it 
         # as relevant 
-        if P.pweights[-1] == 1: 
-            self.tstamp2nodeset[self.t_index] |= {P.tail()} 
+        if len(P.pweights) > 0: 
+            if P.pweights[-1] == 1: 
+                self.tstamp2nodeset[self.t_index] |= {P.tail()} 
         return True 
 
     """
@@ -242,7 +243,9 @@ class HypothesisContainerTypeGP:
             return 
 
         if clear_first:
-            self.gpaths.clear() 
+            while len(self.gpaths) > 0: 
+                q = self.gpaths[0] 
+                self.delete_path(q,None,0)
 
         while len(self.gpaths_queue): 
             p = self.gpaths_queue.pop(0)
@@ -272,8 +275,9 @@ class HypothesisContainerTypeGP:
             q = len(x) - 1
 
             # certain 
-            if x.pweights[-1] == 1.0: 
-                l2certainty[q] |= {x.tail()} 
+            if len(x.pweights) > 0: 
+                if x.pweights[-1] == 1.0: 
+                    l2certainty[q] |= {x.tail()} 
 
         for k,v in l2certainty.items(): 
             self.path_hyp[k] |= v 
