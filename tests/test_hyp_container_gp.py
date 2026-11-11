@@ -91,6 +91,9 @@ class HypothesisContainerTypeGPMethods(unittest.TestCase):
 
         assert len(H) == 3 
 
+        # check for correct path hypothesis 
+        assert H.path_hyp == defaultdict(set, \
+            {0: {0, 1, 2, 3, 4}, 1: {14}, 2: {25}})
 
 if __name__ == '__main__':
     unittest.main()
