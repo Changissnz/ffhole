@@ -212,7 +212,7 @@ class HypothesisContainerTypeGP:
 
         # case: PRNG is present, resort paths for ties 
         if type(prg) != type(None): 
-            q = prg_seqsort_ties(self.tail2paths[t],prg,vf=lambda x: x.cost()) 
+            q = prg_seqsort_ties(self.tail2paths[t],prg,vf=lambda x: -x.cost()) 
             index = None 
             for (i,q_) in enumerate(q): 
                 if q_ == P: 
