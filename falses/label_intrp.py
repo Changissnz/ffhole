@@ -36,6 +36,8 @@ class LabelInterpreterTypeCEE:
 
         # label-to-parallel map 
         self.l2p_map = None 
+        # node to (label,index) map, explicitly call <node_to_label_map> to load it up 
+        self.n2li_map = None 
         self.G = None 
 
         self.preproc() 
@@ -77,14 +79,12 @@ class LabelInterpreterTypeCEE:
 
         for i in range(L): 
             prev = q[-1] 
-
             # case: direct path node equals skew path node 
             if prev != nodeseq[i][0]: 
                 adj_label = nodeseq[i][1] 
                 adj_index = self.label_to_index(adj_label)
                 j = -1 if adj_index < current_index else 1  
                 nseq = self.nodeseq_at_column_span(i,(current_index,adj_index + j)) 
-
                 # just to check 
                 assert nseq[-1] == nodeseq[i][0] 
 
@@ -157,11 +157,6 @@ class LabelInterpreterTypeCEE:
             n = None 
             label_ = label  
 
-            try:
-                print("\tSKEWSOS: ",skew[0],current_index)
-            except:
-                pass 
-
             # case: no more skews, go with default  
             if len(skew) == 0: 
                 n = self.label_to_node_at_cindex(label,current_index) 
@@ -177,7 +172,6 @@ class LabelInterpreterTypeCEE:
             else: 
                 n = self.label_to_node_at_cindex(label,current_index) 
 
-            print("XX: ",n,label_) 
             add_to_q(n,label_) 
             current_index += 1 
 
@@ -193,7 +187,6 @@ class LabelInterpreterTypeCEE:
         assert 0 <= index < len(self.label_seq) 
 
         P = self.l2p_map[label] 
-        print("PX: ",P)
         return P[index]
 
     """
@@ -224,3 +217,27 @@ class LabelInterpreterTypeCEE:
             if p[index] == n: 
                 return k 
         return None 
+
+    def node_to_label_map(self): 
+        self.n2li_map = dict() 
+        for k,v in self.l2p_map.items(): 
+            for (i,n) in enumerate(v.p): 
+                self.n2li_map[n] = (k,i) 
+        return 
+
+    """
+    return:
+    - defaultdict, column index -> set of labels 
+    """
+    def path_to_lmap(self,P):
+        assert type(P) == list  
+
+        if type(self.n2li_map) == type(None): 
+            self.node_to_label_map() 
+
+        q = defaultdict(set)  
+
+        for n in P: 
+            l,i = self.n2li_map[n] 
+            q[i] |= {l}  
+        return q 
