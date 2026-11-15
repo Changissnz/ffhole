@@ -12,8 +12,9 @@ DEFAULT_QUESTION_PROOF_SIMULATION_OUTPUT_SPACE_RATIO_RANGE = [0.2,0.5]#[0.2,0.75
 """
 Question Type (S)ubjective (W)ith (P)roof (S)imulation. 
 
-Facilitates proof process between a demonstrator and an observer. 
-Output determines whether demonstrator or observer answer is accepted. 
+Facilitates proof process between a demonstrator PRNG and an 
+observer PRNG. Output determines the difference in quality of proofs 
+produced by the two. 
 """
 class QuestionTypeSWPS: 
 
