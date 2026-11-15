@@ -13,3 +13,4 @@ A series of algorithms that model the means and effects of false feedbacks.
     - [tested] Type DD: Delay and Divert  
     - [tested] Type SP: Secret Preservation  
 - [pending] False Claim 
+    - [pending] Type I: Interpretive 
