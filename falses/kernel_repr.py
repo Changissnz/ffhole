@@ -40,9 +40,15 @@ class KernelReprTypeDCC:
     """
     constituent chains of element, starting from its immediate 
     constituents till the base elements. 
+
+    return:
+    - list, every element E is a list of elements 
+            that is a list of sets of elements: 
+
+            E := [s_0,s_1,s_2,...]
+            s_i := [set i0, set i1,...]. 
     """
     def constituent_chains(self,element):
-
         # case: element is base: 
         if element in self.base_elements: return [] 
 
@@ -66,7 +72,7 @@ class KernelReprTypeDCC:
                 r2_ = [] 
                 for r_ in r: 
                     C = self.e2info_map[r_][0]
-                    print("CX: ",C)
+
                     # case: element is base 
                     if C == {r_}: 
                         continue 
