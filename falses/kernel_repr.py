@@ -1,10 +1,10 @@
 from types import MethodType,FunctionType
+from collections import deque 
 
 def identity_form_function(): 
 
     def f(x): 
         return x 
-
     return f 
 
 
@@ -21,6 +21,9 @@ class KernelReprTypeDCC:
         # element idn -> (constituent set of element idns,formulation function to produce it) 
         self.e2info_map = dict() 
         self.preproc() 
+
+        # used to store the result of processing an element 
+        self.pcache = deque() 
         return 
 
     def preproc(self):
@@ -38,6 +41,37 @@ class KernelReprTypeDCC:
         return 
 
     """
+    main method #1 
+
+    processes all elements of constituent chains that comprise element  
+    """
+    def process_element(self,element): 
+        C = self.constituent_chains(element) 
+
+        self.pcache.clear() 
+
+        for C_ in C: 
+            q = self.process_one_c_chain(C_) 
+            for q_ in q: self.pcache.append(q_)
+        return list(self.pcache) 
+
+    def process_one_c_chain(self,c_chain:list): 
+        for c in c_chain: 
+            yield self.process_element_setseq(c) 
+
+    def process_element_setseq(self,element_seq:list): 
+        q = [] 
+        for x in element_seq: 
+            x_ = sorted(x)
+            for x1 in x_: 
+                cx = self.e2info_map[x1][0] 
+                f = self.e2info_map[x1][1] 
+                q.append(f(cx)) 
+        return q 
+
+    """
+    main method #2 
+
     constituent chains of element, starting from its immediate 
     constituents till the base elements. 
 
@@ -95,9 +129,9 @@ class KernelReprTypeDCC:
         if element not in self.e2info_map: return -1 
 
         x = self.constituent_chains(element)
-        return self.constituent_chain_to_degree(x) 
+        return self.constituent_chains_to_degree(x) 
 
-    def constituent_chain_to_degree(self,C): 
+    def constituent_chains_to_degree(self,C): 
         if len(C) == 0: return 0 
 
         q = [len(c) for c in C] 
