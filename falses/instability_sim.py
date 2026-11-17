@@ -19,4 +19,4 @@ class InstabilitySimulatorTypeDCC:
 
         q = self.I.label_to_s_path(label,skew,skew_direction)
         i_vec = self.K.process_element(label) 
-        return self.ivm_function(i_vec) 
+        return self.ivm_function(i_vec,primary_prng,secondary_prng)  
