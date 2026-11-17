@@ -3,9 +3,12 @@ from collections import deque
 
 def identity_form_function(): 
 
-    def f(x): 
+    def f(x,constituents): 
         return x 
     return f 
+
+def instability_score_vector(c_form_seq,weight_map): 
+    return [weight_map[c] for c in c_form_seq]
 
 
 """
@@ -30,14 +33,6 @@ class KernelReprTypeDCC:
 
         for element in self.base_elements:
             self.e2info_map[element] = ({element},identity_form_function()) 
-        return 
-
-    def add_element(self,element,constituents,form_func): 
-        assert element not in self.e2info_map, "element {} already stored!".format(element)
-        for c in constituents: 
-            assert c in self.e2info_map, "constituent {} not found in kernel".format(c) 
-        assert type(form_func) in {MethodType,FunctionType}
-        self.e2info_map[element] = (constituents,form_func)
         return 
 
     """
@@ -66,7 +61,7 @@ class KernelReprTypeDCC:
             for x1 in x_: 
                 cx = self.e2info_map[x1][0] 
                 f = self.e2info_map[x1][1] 
-                q.append(f(cx)) 
+                q.append(f(x1,cx)) 
         return q 
 
     """
@@ -125,6 +120,17 @@ class KernelReprTypeDCC:
             stat = stat_q.count(False)  
         return q0 
 
+    """
+    main method #3 
+    """
+    def add_element(self,element,constituents,form_func): 
+        assert element not in self.e2info_map, "element {} already stored!".format(element)
+        for c in constituents: 
+            assert c in self.e2info_map, "constituent {} not found in kernel".format(c) 
+        assert type(form_func) in {MethodType,FunctionType}
+        self.e2info_map[element] = (constituents,form_func)
+        return 
+
     def degree_of_element(self,element): 
         if element not in self.e2info_map: return -1 
 
@@ -137,3 +143,64 @@ class KernelReprTypeDCC:
         q = [len(c) for c in C] 
         return max(q)
 
+"""
+Kernel Representation Type (D)erivable (C)onstituent (C)omposition (W)ith (S)tability (M)easures.
+"""
+class KernelReprTypeDCCWSM(KernelReprTypeDCC): 
+
+    def __init__(self,base_element_seq,weight_map): 
+        self.weight_map = defaultdict(float) 
+
+        super().__init__(base_element_seq)
+        return 
+
+    def preproc(self,weight_map): 
+        for x in self.base_elements: 
+            self.add_element(x,{x},\
+            identity_form_function(),instability_score_vector,weight_map[x])
+
+    def add_element(self,element,constituents,form_func,s_func,weight_value): 
+        assert element not in self.e2info_map, "element {} already stored!".format(element)
+        for c in constituents: 
+            assert c in self.e2info_map, "constituent {} not found in kernel".format(c) 
+        assert type(form_func) in {MethodType,FunctionType}
+        assert type(sfunc_func) in {MethodType,FunctionType}
+        assert is_number(weight_value)
+        self.e2info_map[element] = (constituents,form_func,s_func)
+        return
+
+    """
+    NOTE: method used in the case of graphs, where edges exist between elements 
+    """
+    def add_weights(self,weight_map,overwrite_elements:bool= True): 
+
+        if not overwrite_elements: 
+            q = set(weight_map.keys()).intersection(set(self.weight_map.keys())) 
+            assert not len(q)
+
+        self.weight_map.update(weight_map)
+        return 
+
+    """
+    return:
+    - np.ndarray, one-dimensional vector of instability scores mapped from the constituent 
+        chains of the element. 
+    """
+    def process_element(self,element): 
+        q = super().process_element(element) 
+        q1 = [] 
+        for q_ in q: q1.extend(q_) 
+        return np.array(q1)  
+
+    def process_element_setseq(self,element_seq:list): 
+        q = [] 
+        for x in element_seq: 
+            x_ = sorted(x)
+            for x1 in x_: 
+                cx = self.e2info_map[x1][0] 
+                f = self.e2info_map[x1][1] 
+
+                c_form = f(x1,cx) 
+                i_vec = s_func(c_form,self.weight_map)
+                q.append(i_vec)  
+        return q 
