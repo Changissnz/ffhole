@@ -167,6 +167,7 @@ class KernelReprTypeDCCWSM(KernelReprTypeDCC):
         assert type(sfunc_func) in {MethodType,FunctionType}
         assert is_number(weight_value)
         self.e2info_map[element] = (constituents,form_func,s_func)
+        self.weight_map[element] = weight_value
         return
 
     """
@@ -201,6 +202,7 @@ class KernelReprTypeDCCWSM(KernelReprTypeDCC):
                 f = self.e2info_map[x1][1] 
 
                 c_form = f(x1,cx) 
+                s_func = self.e2info_map[x1][2] 
                 i_vec = s_func(c_form,self.weight_map)
                 q.append(i_vec)  
         return q 
