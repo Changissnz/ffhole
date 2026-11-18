@@ -2,7 +2,7 @@ from .prdcc_model import *
 from .label_intrp import * 
 
 """
-(A)uto-(G)enerated Chained Label Interpreter Type (C)lass-(E)xpected (E_)ffect. 
+(A)uto-(G)enerating Chained Label Interpreter Type (C)lass-(E)xpected (E_)ffect. 
 
 Starts with an initial <LabelInterpreterTypeCEE> and complementary <KernelReprTypeDCCWSM>. 
 """ 
