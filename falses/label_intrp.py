@@ -54,6 +54,9 @@ class LabelInterpreterTypeCEE:
             self.l2p_map[l] = NodePath.from_graph(X.parallels[i],False,head_node) 
         self.G = X.G 
 
+    def __len__(self): 
+        return len(self.l2p_map)
+
     """
     main method #1. 
 

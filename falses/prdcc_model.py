@@ -148,7 +148,10 @@ class PRDCCFunctionGen:
         assert type(prg) in {MethodType,FunctionType} 
         assert form_type in DEFAULT_PRDCC_FUNCTION_GEN_FORM_TYPES
 
-        self.label_seq = sorted(starting_label_set) 
+        self.label_seq = starting_label_set
+        if type(self.label_seq) == set: 
+            self.label_seq = sorted(self.label_seq)
+
         self.label_seq = [str(l) for l in self.label_seq]
         self.prg = prg 
         self.ftype = form_type
@@ -172,6 +175,9 @@ class PRDCCFunctionGen:
             i = self.l2i_map.element_to_int_label(l) 
             self.l2f_map[i] = (f_func,s_func) 
         return 
+
+    def __contains__(self,element): 
+        return self.element_to_int_label(element) != -1 
 
     """
     main method #1 

@@ -1,5 +1,6 @@
 from types import MethodType,FunctionType
-from collections import deque 
+from collections import deque,defaultdict
+from morebs2.matrix_methods import is_number 
 
 def identity_form_function(): 
 
@@ -16,23 +17,23 @@ Kernel Representation Type (D)erivable (C)onstituent (C)omposition.
 """
 class KernelReprTypeDCC: 
 
-    def __init__(self,base_element_seq): 
+    def __init__(self,base_element_seq,idn_func=identity_form_function): 
         assert type(base_element_seq) == list and \
             len(base_element_seq) == len(set(base_element_seq))
         self.base_elements = base_element_seq
 
         # element idn -> (constituent set of element idns,formulation function to produce it) 
         self.e2info_map = dict() 
-        self.preproc() 
+        self.preproc(idn_func) 
 
         # used to store the result of processing an element 
         self.pcache = deque() 
         return 
 
-    def preproc(self):
+    def preproc(self,idn_func):
 
         for element in self.base_elements:
-            self.e2info_map[element] = ({element},identity_form_function()) 
+            self.e2info_map[element] = ({element},idn_func())  
         return 
 
     """
@@ -148,23 +149,22 @@ Kernel Representation Type (D)erivable (C)onstituent (C)omposition (W)ith (S)tab
 """
 class KernelReprTypeDCCWSM(KernelReprTypeDCC): 
 
-    def __init__(self,base_element_seq,weight_map): 
-        self.weight_map = defaultdict(float) 
+    def __init__(self,base_element_seq,weight_map,idn_func=identity_form_function): 
+        self.weight_map = weight_map  
 
-        super().__init__(base_element_seq)
+        super().__init__(base_element_seq,idn_func)
         return 
 
-    def preproc(self,weight_map): 
+    def preproc(self,idn_func): 
         for x in self.base_elements: 
-            self.add_element(x,{x},\
-            identity_form_function(),instability_score_vector,weight_map[x])
+            self.e2info_map[x] = ({x},idn_func(),instability_score_vector,self.weight_map[x]) 
 
     def add_element(self,element,constituents,form_func,s_func,weight_value): 
         assert element not in self.e2info_map, "element {} already stored!".format(element)
         for c in constituents: 
             assert c in self.e2info_map, "constituent {} not found in kernel".format(c) 
         assert type(form_func) in {MethodType,FunctionType}
-        assert type(sfunc_func) in {MethodType,FunctionType}
+        assert type(s_func) in {MethodType,FunctionType}
         assert is_number(weight_value)
         self.e2info_map[element] = (constituents,form_func,s_func)
         self.weight_map[element] = weight_value
