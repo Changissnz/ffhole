@@ -1,7 +1,7 @@
 from xFS_bots.graph_models.mesh_graph_gen import * 
 
 """
-Label Interpreter Type Class-Expected Effect. 
+Label Interpreter Type (C)lass-(E)xpected (E)ffect. 
 
 Represents an ordered set of k labels and their effects as a square 
 mesh graph, G_m. Graph G_m is comprised of k * k nodes in a conventional 

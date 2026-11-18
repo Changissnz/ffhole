@@ -13,9 +13,6 @@ py -m tests.test_prdcc_model
 """
 class PRDCCFunctionGenMethods(unittest.TestCase):
 
-    """
-    demonstrates deterministic quality of <QuestionTypeSWPS> 
-    """
     def test__PRDCCFunctionGen__add_element__case_1(self): 
 
         pfg = sample_PRDCCFunctionGen_R311("P") 
