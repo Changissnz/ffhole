@@ -2,6 +2,7 @@ from xFS_bots.graph_models.label2int_map import *
 from xFS_bots.graph_models.graph_gen import * 
 
 from morebs2.numerical_generator import prg_decimal
+from morebs2.matrix_methods import is_vector
 
 from .static_prng_functions import * 
 from .kernel_repr import * 
@@ -152,14 +153,17 @@ class PRDCCFunctionGen:
         if type(self.label_seq) == set: 
             self.label_seq = sorted(self.label_seq)
 
-        self.label_seq = [str(l) for l in self.label_seq]
+        self.label_seq = [l for l in self.label_seq]
+
         self.prg = prg 
         self.ftype = form_type
 
+        # base constituent idn -> int 
+        self.b2int_map = {l:i for i,l in enumerate(self.label_seq)} 
         # label-to-integer map, <Label2IntMap>.
         self.l2i_map = None 
-        # label -> (formulation function, instability function) 
-        self.l2f_map = dict() 
+        # integer identifier -> (formulation function, instability function) 
+        self.i2f_map = dict() 
         self.preproc() 
         return 
 
@@ -167,31 +171,45 @@ class PRDCCFunctionGen:
         s_func = DEFAULT_L2INT_STRINGIZE_FUNC
         s_inv = DEFAULT_L2INT_DESTRINGIZE_FUNC(str,True)
 
-        self.l2i_map = Label2IntMap(self.label_seq,\
+        i_seq = [self.b2int_map[l] for l in self.label_seq]
+        self.l2i_map = Label2IntMap(i_seq,\
             s_func,s_inv,enable_bimap=True)
 
-        for l in self.label_seq: 
+        #for l in self.label_seq: 
+        for l in i_seq: 
             f_func,s_func = generate_form__identity(),instability_score_vector
             i = self.l2i_map.element_to_int_label(l) 
-            self.l2f_map[i] = (f_func,s_func) 
+            self.i2f_map[i] = (f_func,s_func) 
         return 
 
     def __contains__(self,element): 
         return self.element_to_int_label(element) != -1 
 
+    def base_to_int_idn(self,b): 
+        assert b in self.b2int_map 
+        return self.b2int_map[b] 
+
     """
     main method #1 
+
+    NOTE: set of `constituents` is of the integer identifiers 
+          of the elements. 
     """
     def add_element(self,constituents:set):  
+        
+        # case: already present 
+        if self.element_to_int_label(constituents) != -1: 
+            return 
+
         # verify that all members of constituent set 
         # already exist in map 
         for c in constituents: 
-            assert c in self.l2f_map 
+            assert c in self.i2f_map 
             #assert self.element_to_int_label(c) != -1 
 
         self.l2i_map.add_element(constituents) 
         de_int = self.element_to_int_label(constituents)
-        self.l2f_map[de_int] = self.generate_functions_for_element() 
+        self.i2f_map[de_int] = self.generate_functions_for_element() 
 
     """
     main method #2
@@ -201,8 +219,20 @@ class PRDCCFunctionGen:
         f_func = self.generate_f_function()
         return f_func,instability_score_vector
 
-    def element_to_int_label(self,element): 
-        return self.l2i_map.element_to_int_label(element) 
+    def element_to_int_label(self,constituents): 
+        if type(constituents) in {set,list} or is_vector(constituents): 
+            if len(constituents) == 1: 
+                q = deepcopy(constituents).pop() 
+                if q in self.i2f_map: return q 
+                assert False 
+
+        #print("CHECK BUG: ",constituents)
+        #print("L2I: ",self.l2i_map.imap)
+        q = self.l2i_map.stringize_func(constituents)
+        #print("STRINGIZED: ",q,"  TX: ",type(q))
+        xx = self.l2i_map.element_to_int_label(constituents) 
+        #print("XXXX: ",xx)
+        return xx 
 
     def int_label_to_element(self,i):
         return self.l2i_map.int_label_to_element(i) 
