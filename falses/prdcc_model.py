@@ -226,12 +226,8 @@ class PRDCCFunctionGen:
                 if q in self.i2f_map: return q 
                 assert False 
 
-        #print("CHECK BUG: ",constituents)
-        #print("L2I: ",self.l2i_map.imap)
         q = self.l2i_map.stringize_func(constituents)
-        #print("STRINGIZED: ",q,"  TX: ",type(q))
         xx = self.l2i_map.element_to_int_label(constituents) 
-        #print("XXXX: ",xx)
         return xx 
 
     def int_label_to_element(self,i):

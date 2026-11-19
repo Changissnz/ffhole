@@ -1,6 +1,7 @@
 from types import MethodType,FunctionType
 from collections import deque,defaultdict
 from morebs2.matrix_methods import is_number 
+import numpy as np 
 
 def identity_form_function(): 
 
@@ -26,8 +27,9 @@ class KernelReprTypeDCC:
         self.e2info_map = dict() 
         self.preproc(idn_func) 
 
-        # used to store the result of processing an element 
-        self.pcache = deque() 
+        # used to store the result of calculating all constituent forms 
+        # for element 
+        self.ccache = deque() 
         return 
 
     def preproc(self,idn_func):
@@ -39,31 +41,33 @@ class KernelReprTypeDCC:
     """
     main method #1 
 
-    processes all elements of constituent chains that comprise element  
+    calculates all constituent forms pertaining to `element`, starting 
+    from the `element`'s direct constituent form, moving down (in ordering 
+    by idn) to every other constituent element's constituent forms.
+
+    NOTE: the constituent form of an element is the output from its formulation 
+          function, not necessarily the literal constituent identifiers for it. 
     """
-    def process_element(self,element): 
-        C = self.constituent_chains(element) 
+    def constituent_forms(self,element): 
+        assert element in self.e2info_map
+        self.ccache.clear() 
+        self.ccache.append(element)
+        c_vec = [] 
+        while len(self.ccache) > 0: 
+            element_ = self.ccache.popleft() 
+            C = self.constituent_form_(element_)
+            c_vec.append(C) 
+        return c_vec
 
-        self.pcache.clear() 
+    def constituent_form_(self,element): 
+        # add the instability scores for all other elements 
+        cx = self.e2info_map[element][0]
+        f = self.e2info_map[element][1] 
 
-        for C_ in C: 
-            q = self.process_one_c_chain(C_) 
-            for q_ in q: self.pcache.append(q_)
-        return list(self.pcache) 
-
-    def process_one_c_chain(self,c_chain:list): 
-        for c in c_chain: 
-            yield self.process_element_setseq(c) 
-
-    def process_element_setseq(self,element_seq:list): 
-        q = [] 
-        for x in element_seq: 
-            x_ = sorted(x)
-            for x1 in x_: 
-                cx = self.e2info_map[x1][0] 
-                f = self.e2info_map[x1][1] 
-                q.append(f(x1,cx)) 
-        return q 
+        # case: no identities 
+        if not cx == {element}:
+            self.ccache.extend(sorted(cx)) 
+        return f(element,cx)
 
     """
     main method #2 
@@ -77,6 +81,9 @@ class KernelReprTypeDCC:
 
             E := [s_0,s_1,s_2,...]
             s_i := [set i0, set i1,...]. 
+
+    NOTE: constituent chains are comprised of constituent identifiers, 
+          which are not necessarily the forms. 
     """
     def constituent_chains(self,element):
         # case: element is base: 
@@ -153,6 +160,7 @@ class KernelReprTypeDCCWSM(KernelReprTypeDCC):
         self.weight_map = weight_map  
 
         super().__init__(base_element_seq,idn_func)
+        self.scache = deque() 
         return 
 
     def preproc(self,idn_func): 
@@ -187,22 +195,35 @@ class KernelReprTypeDCCWSM(KernelReprTypeDCC):
     - np.ndarray, one-dimensional vector of instability scores mapped from the constituent 
         chains of the element. 
     """
-    def process_element(self,element): 
-        q = super().process_element(element) 
-        q1 = [] 
-        for q_ in q: q1.extend(q_) 
-        return np.array(q1)  
+    def instability_vec(self,element): 
+        assert element in self.weight_map
+        self.scache.clear() 
+        self.scache.append(element) 
 
-    def process_element_setseq(self,element_seq:list): 
-        q = [] 
-        for x in element_seq: 
-            x_ = sorted(x)
-            for x1 in x_: 
-                cx = self.e2info_map[x1][0] 
-                f = self.e2info_map[x1][1] 
+        # first instability score is that of element 
+        i_vec = [self.weight_map[element]] 
 
-                c_form = f(x1,cx) 
-                s_func = self.e2info_map[x1][2] 
-                i_vec = s_func(c_form,self.weight_map)
-                q.append(i_vec)  
-        return q 
+        while len(self.scache) > 0: 
+            element_ = self.scache.popleft() 
+            i_vec2 = self.process_element_instability_(element_) 
+            i_vec.extend(list(i_vec2)) 
+        return i_vec
+
+    def process_element_instability_(self,element):
+
+        # add the instability scores for all other elements 
+        cx = self.e2info_map[element][0] 
+        f = self.e2info_map[element][1] 
+
+        c_form = f(element,cx) 
+
+        #   non-base constituents cannot be edges 
+        non_base_constituents = [c for c in c_form if (c not in self.base_elements \
+            and type(c) != tuple)]  
+
+        #   the other instability scores 
+        sx = self.e2info_map[element][2] 
+        i_vec = sx(c_form,self.weight_map)
+
+        self.scache.extend(non_base_constituents)
+        return i_vec 

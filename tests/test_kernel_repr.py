@@ -60,11 +60,11 @@ class KernelReprTypeDCCMethods(unittest.TestCase):
         c712 = K.constituent_chains(712) 
         d712 = K.constituent_chains_to_degree(c712) 
 
-        X = K.process_element(712) 
-        assert X == [[17], [4, 49, 73, 211], [4, 34, 56, 5, 10, 211], \
-            [49], [4, 34, 56], [71], [10, 17, 34, 49], \
-            [4, 49, 73, 211, 4, 34, 56], [4, 34, 56, 5, 10, 211], \
-            [73], [5, 10, 211], [211]]
+        X = K.constituent_forms(712) 
+        assert X == [712, 17, 49, 71, 73, 211, 4, 49, 73, 211, \
+            4, 34, 56, 10, 17, 34, 49, 5, 10, 211, 4, 34, \
+            56, 5, 10, 211, 4, 49, 73, 211, 4, 34, 56, \
+            4, 34, 56, 5, 10, 211], "got {}".format(X) 
 
 if __name__ == '__main__':
     unittest.main()

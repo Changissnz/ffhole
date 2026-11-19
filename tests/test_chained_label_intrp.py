@@ -7,7 +7,8 @@ py -m tests.test_chained_label_intrp
 class AGChainedLabelInterpreterTypeCEEMethods(unittest.TestCase):
 
     """
-    demonstrates consistency of NEXT node function 
+    checks for correct values in data structures after two S-path (skew path) 
+    updates, producing a total of 3 links to the chain. 
     """ 
     def test__AGChainedLabelInterpreterTypeCEE__update_with_s_path__case_1(self): 
 
