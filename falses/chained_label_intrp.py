@@ -12,6 +12,12 @@ class AGChainedLabelInterpreterTypeCEE:
         assert type(prg) in {MethodType,FunctionType}
 
         self.prg = prg 
+
+        self.pfgen = None 
+        self.I = None 
+        self.K = None 
+
+        self.i_chain = [] 
         self.preproc(c2w_map,form_type) 
         return
 
@@ -25,8 +31,7 @@ class AGChainedLabelInterpreterTypeCEE:
         c2w_map_ = {str(self.pfgen.element_to_int_label(k)): v for k,v in c2w_map.items()}
 
         self.K = KernelReprTypeDCCWSM(int_label_seq,c2w_map_,idn_func=generate_form__identity)
-        return
-
+        return 
 
     def update_with_s_path(self,element,skew,skew_direction=1,is_literal_label:bool=False): 
 
@@ -39,14 +44,29 @@ class AGChainedLabelInterpreterTypeCEE:
         for i in range(l): 
             E = M[i]
             self.update_kernel(E) 
+
+        self.add_link(M) 
+        return 
+
+    def add_link(self,M): 
+        indices = sorted(M.keys())
+        q = [M[i] for i in indices] 
+
+        labels = [str(self.pfgen.element_to_int_label(l)) for l in self.I.label_seq]
+        new_labels = [str(self.pfgen.element_to_int_label(q_)) for q_ in q]
+        labels.extend(new_labels)
+
+        self.i_chain.append(self.I) 
+        self.I = LabelInterpreterTypeCEE(labels) 
         return 
 
     def update_kernel(self,element): 
-        element_ = set([str(self.pfgen.element_to_int_label(el)) for el in element]) 
 
         # case: element already found 
         if element in self.pfgen: 
             return 
+
+        element_ = set([str(self.pfgen.element_to_int_label(el)) for el in element]) 
 
         self.pfgen.add_element(element) 
         i = self.pfgen.element_to_int_label(element) 

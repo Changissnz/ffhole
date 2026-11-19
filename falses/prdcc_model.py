@@ -186,7 +186,8 @@ class PRDCCFunctionGen:
         # verify that all members of constituent set 
         # already exist in map 
         for c in constituents: 
-            assert self.element_to_int_label(c) != -1 
+            assert c in self.l2f_map 
+            #assert self.element_to_int_label(c) != -1 
 
         self.l2i_map.add_element(constituents) 
         de_int = self.element_to_int_label(constituents)
