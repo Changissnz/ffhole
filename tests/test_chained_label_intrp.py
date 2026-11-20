@@ -70,12 +70,13 @@ class AGChainedLabelInterpreterTypeCEEMethods(unittest.TestCase):
 
         skew = [(0,2),(1,3),(2,1)] 
 
-        label = 0 #"46sdgf"
+        label = 0
         AL.update_with_s_path(label,deepcopy(skew),skew_direction=1)
 
         label2 = 7
         AL.update_with_s_path(label2,[],skew_direction=1)
 
+        # subcase 1: w/ non-zero skew 
         r = AL.s_path_instability_vec(0,label,skew,skew_direction=1,verbose=True)
 
         c0 = AL.constituents_to_label({0,1,2})
@@ -95,6 +96,11 @@ class AGChainedLabelInterpreterTypeCEEMethods(unittest.TestCase):
 
         assert r == V 
 
+        # subcase 2: w/ zero skew 
+        assert AL.element_instability_vec(label) == [0.55] * 2 
+
+        r = AL.s_path_instability_vec(0,label,[],skew_direction=1,verbose=False) 
+        assert r == [0.55] * len(AL.fetch_intrp(0)) * 2 
 
 if __name__ == '__main__':
     unittest.main()
