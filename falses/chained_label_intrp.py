@@ -59,10 +59,11 @@ class AGChainedLabelInterpreterTypeCEE:
         self.K = KernelReprTypeDCCWSM(int_label_seq,c2w_map_,idn_func=generate_form__identity)
         return 
 
+    #----------------------------------- update methods used to add more links to chain 
+
     def update_with_s_path(self,element,skew,skew_direction=1,add_to_chain:bool=True): 
         assert type(add_to_chain) == bool 
 
-        ix = self.pfgen.element_to_int_label(element) 
         P = self.I.label_to_s_path(element,skew,skew_direction)
         M = self.I.path_to_lmap(P)
 
@@ -123,3 +124,47 @@ class AGChainedLabelInterpreterTypeCEE:
                 self.prg,[0.,1.]),5))
 
         self.K.add_weights(new_weights,overwrite_elements=False) 
+
+    
+    #-------------------------------------------------- methods to calculate instability 
+    #-------------------------------------------------- 
+
+    """
+    the instability vector of an S-path is the ordered concatenation of every index's 
+    instability vector for the <LabelInterpreterTypeCEE> @ index `intrp_index`.
+    """
+    def s_path_instability_vec(self,intrp_index,label,skew,skew_direction=1,verbose:bool=False): 
+        assert type(verbose) == bool 
+
+        I = self.fetch_intrp(intrp_index) 
+        P = I.label_to_s_path(label,skew,skew_direction)
+        M = I.path_to_lmap(P)
+
+        l = len(I)
+        V = [] 
+        for i in range(l): 
+            s = M[i] 
+            if verbose: print("*\t{} --> {}".format(i,s)) 
+            j = self.pfgen.element_to_int_label(s)
+            V.extend(self.element_instability_vec(j))  
+
+        return V 
+
+    def fetch_intrp(self,index): 
+        assert 0 <= index <= len(self.i_chain) + 1 
+        if index == len(self.i_chain) + 1: 
+            return self.I 
+        return self.i_chain[index]
+
+    """
+    element := int, integer label for element 
+    """
+    def element_instability_vec(self,element): 
+        return self.K.instability_vec(element)
+
+    """
+    return: 
+    - the integer label pertaining to the `constituents`. 
+    """
+    def constituents_to_label(self,constituents): 
+        return self.pfgen.element_to_int_label(constituents) 

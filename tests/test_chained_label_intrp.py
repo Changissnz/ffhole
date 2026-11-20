@@ -50,5 +50,51 @@ class AGChainedLabelInterpreterTypeCEEMethods(unittest.TestCase):
         # no change in label sets b/t Label Interpreters
         assert AL[1].label_seq == AL.I.label_seq
 
+    """
+    checks that the S-path instability vector calculated is a concatenation of 
+    every index's instability vector. 
+    """
+    def test__AGChainedLabelInterpreterTypeCEE__s_path_instability_vec__case_1(self): 
+
+        c2w = {"sdfgsda":0.5,"46sdgf":0.55,"hs345as":0.2433,"jl;j":0.8812}
+
+        prg = prg = prg__LCG(234.52,-352.2,11563.44,3449.65) 
+        form_type = "G"
+
+        AL = AGChainedLabelInterpreterTypeCEE(c2w,prg,form_type)
+
+        starting_keys = {0, 1, 2, 3} 
+        assert set(AL.I.l2p_map.keys()) == starting_keys
+        assert set(AL.K.weight_map.keys()) == starting_keys
+        assert set(AL.pfgen.i2f_map.keys()) == starting_keys
+
+        skew = [(0,2),(1,3),(2,1)] 
+
+        label = 0 #"46sdgf"
+        AL.update_with_s_path(label,deepcopy(skew),skew_direction=1)
+
+        label2 = 7
+        AL.update_with_s_path(label2,[],skew_direction=1)
+
+        r = AL.s_path_instability_vec(0,label,skew,skew_direction=1,verbose=True)
+
+        c0 = AL.constituents_to_label({0,1,2})
+        c1 = AL.constituents_to_label({2,3})
+        c2 = AL.constituents_to_label({1,2,3})
+        c3 = AL.constituents_to_label({0,1})
+
+        v0 = AL.element_instability_vec(c0) 
+        v1 = AL.element_instability_vec(c1) 
+        v2 = AL.element_instability_vec(c2) 
+        v3 = AL.element_instability_vec(c3) 
+
+        V = deepcopy(v0) 
+        V.extend(v1) 
+        V.extend(v2) 
+        V.extend(v3) 
+
+        assert r == V 
+
+
 if __name__ == '__main__':
     unittest.main()
