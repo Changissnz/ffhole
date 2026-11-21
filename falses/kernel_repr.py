@@ -195,6 +195,8 @@ class KernelReprTypeDCCWSM(KernelReprTypeDCC):
     - np.ndarray, one-dimensional vector of instability scores mapped from the constituent 
         chains of the element. 
     """
+    # NOTE: in the case of `base_elements`, double-counting of those elements' instability 
+    #       weight occurs: 1 for the initial, and 1 for the identity constituent. 
     def instability_vec(self,element): 
         assert element in self.weight_map
         self.scache.clear() 
