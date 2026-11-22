@@ -1,6 +1,25 @@
 from falses.chained_label_intrp import * 
 
+def DEFAULT_FALSE_CLAIM_IVEC_DELTA_FUNCTION(multiplier):
+    assert multiplier > 1.0 
+
+    def f(V): 
+        return list(np.array(V) * multiplier) 
+
+    return f 
+
+def DEFAULT_FALSE_CLAIM_IVEC_ACTIVATION_FUNCTION(min_ratio): 
+    assert 0.0 <= min_ratio <= 1.0
+    
+    def f(V): 
+        q = np.where(np.array(V) >= 1.0)[0] 
+        return len(q) >= min_ratio * len(V) 
+
+    return f 
+
 """
+(F)alse (C)laim Agent Type (I)nterpretive. 
+
 l_intrp := <LabelInterpreterTypeCEE>, the square-lattice interpreter for  
         choices (labels). 
 prg := function|method, PRNG used for making decisions. 
@@ -27,6 +46,8 @@ class FCAgentTypeI:
         self.iv_cache = deque() 
 
         self.cumulative_instability = 0.0 
+
+        self.timestamp = 0 
         return 
 
     def update_label_intrp(self,l_intrp): 
@@ -37,13 +58,13 @@ class FCAgentTypeI:
     def add_ivec(self,V): 
         assert type(V) == list or is_vector(V) 
         assert 0.0 <= np.min(V) <= np.max(V) <= 1.0 
-        self.iv_queue.append(V) 
+        self.iv_queue.append((self.timestamp,deepcopy(V),deepcopy(V))) 
 
     def process_instability(self): 
         Q2 = deque() 
 
         while len(self.iv_queue) > 0: 
-            iv,iv_ = self.iv_queue.popleft() 
+            t,iv,iv_ = self.iv_queue.popleft() 
 
             new_v,stat = self.iv_ufunc(iv_) 
 
@@ -56,7 +77,12 @@ class FCAgentTypeI:
         self.iv_queue = Q2 
         return  
 
+    def increment_timestamp(self): 
+        self.timestamp += 1 
 
+"""
+The subject agent in False Claim Type Interpretive. 
+"""
 class FCSubjectTypeI(FCAgentTypeI): 
 
     def __init__(self,l_intrp:LabelInterpreterTypeCEE,prg,iv_update_func,iv_act_func):
@@ -105,7 +131,7 @@ class FCClaimantTypeI(FCAgentTypeI):
 
         # calculate skew 
         skew_vec = [] 
-        for i in range(l): 
+        for i in range(1,l): 
             index_skew = modulo_in_range(int(self.prg()),[1,l]) 
             skew_vec.append((i,index_skew)) 
         skew_direction = 1 
