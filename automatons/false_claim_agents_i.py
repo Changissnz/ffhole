@@ -1,25 +1,29 @@
 from falses.chained_label_intrp import * 
 
-def DEFAULT_FALSE_CLAIM_IVEC_DELTA_FUNCTION(multiplier):
+def DEFAULT_FALSE_CLAIM_IVEC_DELTA_FUNCTION(multiplier): 
     assert multiplier > 1.0 
 
+    """
+    return:
+    - updated instability vector, ?is activated? 
+    """
     def f(V): 
-        return list(np.array(V) * multiplier) 
+        V_ = np.array(np.array(V) * multiplier)
+        q = np.where(np.array(V_) > 0.0)[0] 
+        V1 = V_[q] 
+        stat = np.all(V1 >= 1.0)
+        return V_,stat 
 
     return f 
 
-def DEFAULT_FALSE_CLAIM_IVEC_ACTIVATION_FUNCTION(min_ratio): 
-    assert 0.0 <= min_ratio <= 1.0
-    
-    def f(V): 
-        q = np.where(np.array(V) >= 1.0)[0] 
-        return len(q) >= min_ratio * len(V) 
-
-    return f 
+def DEFAULT_FALSE_CLAIM_IVEC_ACTIVATION(V): 
+    assert type(V) == list or is_vector(V) 
+    return float(np.sum(V))
 
 """
 (F)alse (C)laim Agent Type (I)nterpretive. 
 
+---------------------------------------------------------------------------
 l_intrp := <LabelInterpreterTypeCEE>, the square-lattice interpreter for  
         choices (labels). 
 prg := function|method, PRNG used for making decisions. 
@@ -28,19 +32,22 @@ iv_act_func := function|method, f(V) -> non-negative float.
 """
 class FCAgentTypeI: 
 
-    def __init__(self,l_intrp:LabelInterpreterTypeCEE,prg,iv_update_func,iv_act_func):
+    def __init__(self,l_intrp:LabelInterpreterTypeCEE,prg,iv_update_func,iv_act_func,verbose:bool=False):
         assert type(l_intrp) == LabelInterpreterTypeCEE
         assert len(l_intrp) > 1 
         assert type(prg) in {MethodType,FunctionType} 
         assert type(iv_update_func) in {MethodType,FunctionType} 
         assert type(iv_act_func) in {MethodType,FunctionType} 
+        assert type(verbose) == bool 
 
+        self.idn = None 
         self.l_intrp = l_intrp
         self.prev_intrps = deque() 
 
         self.prg = prg 
         self.iv_ufunc = iv_update_func
         self.iv_afunc = iv_act_func
+        self.verbose = verbose 
 
         self.iv_queue = deque() 
         self.iv_cache = deque() 
@@ -69,8 +76,9 @@ class FCAgentTypeI:
             new_v,stat = self.iv_ufunc(iv_) 
 
             if stat: 
-                self.iv_cache.append(iv)
+                self.iv_cache.append((t,iv))
                 q = self.iv_afunc(iv) 
+                if self.verbose: print("-- {} instability --> agent {}".format(q,self.idn)) 
                 self.cumulative_instability += q 
             else: 
                 Q2.append((t,iv,iv_)) 
@@ -88,9 +96,11 @@ The subject agent in False Claim Type Interpretive.
 """
 class FCSubjectTypeI(FCAgentTypeI): 
 
-    def __init__(self,l_intrp:LabelInterpreterTypeCEE,prg,iv_update_func,iv_act_func):
+    def __init__(self,l_intrp:LabelInterpreterTypeCEE,prg,iv_update_func,iv_act_func,verbose:bool=False):
 
-        super().__init__(l_intrp,prg,iv_update_func,iv_act_func) 
+        super().__init__(l_intrp,prg,iv_update_func,iv_act_func,verbose) 
+
+        self.idn = "subject" 
 
         # stores most recent boolean response to 
         # most recent claim from <FCClaimantTypeI> 
@@ -101,19 +111,24 @@ class FCSubjectTypeI(FCAgentTypeI):
 
         # case: claim has been covered, default to `accept`
         if claim_is_covered: 
-            return True 
+            if self.verbose: print("{} accepts.".format(self.idn))
+            self.accepts = True 
+            return self.accepts
 
         q = prg_decimal(self.prg,[0.,1.]) 
 
         # case: PRNG satisfies trust threshold
         self.accepts = q < trust
+        if self.verbose: 
+            s = "accepts" if self.accepts else "rejects" 
+            print("{} {}: {} < {}".format(self.idn,s,q,trust))
         return self.accepts 
 
 class FCClaimantTypeI(FCAgentTypeI):
 
-    def __init__(self,l_intrp:LabelInterpreterTypeCEE,prg,iv_update_func,iv_act_func):
-        super().__init__(l_intrp,prg,iv_update_func,iv_act_func) 
-
+    def __init__(self,l_intrp:LabelInterpreterTypeCEE,prg,iv_update_func,iv_act_func,verbose:bool=False):
+        super().__init__(l_intrp,prg,iv_update_func,iv_act_func,verbose) 
+        self.idn = "claimant"  
         self.pending_claim = None 
         return 
 
@@ -123,6 +138,12 @@ class FCClaimantTypeI(FCAgentTypeI):
         q = prg_decimal(self.prg,[0.,1.]) 
         no_cover = q < trust
         self.pending_claim = label,skew_vec,skew_dir,no_cover 
+
+        if self.verbose: 
+            print("{} claims".format(self.idn))
+            print("- label: {}\n- skew: {}\n- skew dir: {}\n- cover: {}".format(\
+                label,skew_vec,skew_dir,not no_cover)) 
+            print() 
 
         return self.pending_claim
 
