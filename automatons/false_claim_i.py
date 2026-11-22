@@ -104,6 +104,8 @@ class FalseClaimTypeI:
         self.constant_trust = constant_trust
         self.verbose = None
         self.set_verbosity(verbose)  
+
+        self.intrp_resets = 0 
         return 
 
     def set_prg(self,agent:str,prg):
@@ -171,6 +173,7 @@ class FalseClaimTypeI:
         self.claimant.process_instability()
 
         min_index = len(self.I) - 1
+        min_index_ = len(self.I) - 1 
 
         # trust goes up when subject has instability 
         for x in self.subject.iv_cache: 
@@ -187,6 +190,11 @@ class FalseClaimTypeI:
 
         try: 
             self.I.revert_to_chain_link(min_index)
+
+            stat = min_index == min_index_
+            self.intrp_resets += int(stat)
+
+            if self.verbose and stat: print("interpreter resets to {}".format(min_index))
         except: 
             pass 
 

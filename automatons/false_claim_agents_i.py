@@ -127,6 +127,9 @@ class FCSubjectTypeI(FCAgentTypeI):
             print("{} {}: {} < {}".format(self.idn,s,q,trust))
         return self.accepts 
 
+"""
+The claimant agent in False Claim Type Interpretive. 
+"""
 class FCClaimantTypeI(FCAgentTypeI):
 
     def __init__(self,l_intrp:LabelInterpreterTypeCEE,prg,iv_update_func,iv_act_func,verbose:bool=False):

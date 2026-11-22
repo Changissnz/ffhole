@@ -29,6 +29,7 @@ class FalseClaimTypeIMethods(unittest.TestCase):
         
         assert round(F.subject.cumulative_instability,5) == 513.66283 
         assert round(F.claimant.cumulative_instability,5) == 423.93711 
+        assert F.intrp_resets == 89, "got {}".format(F.intrp_resets)
 
     """
     demonstrates perfect stability of subject in case of non-constant trust. 
@@ -47,6 +48,7 @@ class FalseClaimTypeIMethods(unittest.TestCase):
         assert t_deltas == 99         
         assert round(F.subject.cumulative_instability,5) == 0.0 
         assert round(F.claimant.cumulative_instability,5) == 2076.33693
+        assert F.intrp_resets == 80, "got {}".format(F.intrp_resets)
 
     """
     demonstrates different instability scores from Case #1. The delta multiplier 
@@ -62,6 +64,7 @@ class FalseClaimTypeIMethods(unittest.TestCase):
         
         assert round(F.subject.cumulative_instability,5) == 20.0743 
         assert round(F.claimant.cumulative_instability,5) == 85.15915 
+        assert F.intrp_resets == 89, "got {}".format(F.intrp_resets)
 
     """
     demonstrates a case of using G-form for derivable constituent composition, 
@@ -80,6 +83,7 @@ class FalseClaimTypeIMethods(unittest.TestCase):
         
         assert round(F.subject.cumulative_instability,5) == 214.6171
         assert round(F.claimant.cumulative_instability,5) == 251.95232
+        assert F.intrp_resets == 89, "got {}".format(F.intrp_resets)
 
 if __name__ == '__main__':
     unittest.main()
