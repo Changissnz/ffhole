@@ -53,7 +53,7 @@ Additionally, the `claimant` has the option to add a "cover" over this claim. Wh
 a "cover" is added, the `subject` will always accept the claim. Otherwise, the 
 `subject` accepts the claim iff its PRNG output falls below the `trust`.
 
-If the `subject` accepts a claim uncovered by the `claimant`, the subject receives 
+If the `subject` accepts a claim not covered by the `claimant`, the subject receives 
 the claim's associated instability vector. If the claim is covered, the `claimant` 
 receives said instability vector. 
 
