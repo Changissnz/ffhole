@@ -47,9 +47,9 @@ class AGChainedLabelInterpreterTypeCEEMethods(unittest.TestCase):
 
         label2 = 7
         AL.update_with_s_path(label2,[],skew_direction=1)
-        
+
         assert AL.I.label_seq == [0, 1, 2, 3, 4, 5, 6, 7], "got {}".format(AL.I.label_seq)
-        assert len(AL) == 2
+        assert len(AL) == 3
         # no change in label sets b/t Label Interpreters
         assert AL[1].label_seq == AL.I.label_seq
 
@@ -129,6 +129,42 @@ class AGChainedLabelInterpreterTypeCEEMethods(unittest.TestCase):
 
         r = AL.s_path_instability_vec(0,label,[],skew_direction=1,verbose=False) 
         assert r == [0.55] * len(AL.fetch_intrp(0)) * 2 
+
+    def test__AGChainedLabelInterpreterTypeCEE__revert_to_chain_link__case_1(self):
+        c2w = {"sdfgsda":0.5,"46sdgf":0.55,"hs345as":0.2433,"jl;j":0.8812}
+        prg = prg = prg__LCG(234.52,-352.2,11563.44,3449.65) 
+        form_type = "G"
+
+        AL = AGChainedLabelInterpreterTypeCEE(c2w,prg,form_type,maintain_constant_dim=False)
+
+        starting_keys = {0, 1, 2, 3} 
+        assert set(AL.I.l2p_map.keys()) == starting_keys
+        assert set(AL.K.weight_map.keys()) == starting_keys
+        assert set(AL.pfgen.i2f_map.keys()) == starting_keys
+
+        skew = [(0,2),(1,3),(2,1)] 
+
+        label = 0 
+        AL.update_with_s_path(label,deepcopy(skew),skew_direction=1)
+
+        skew = [(0,2),(1,3),(2,1),(3,4),(5,3)]  
+        AL.update_with_s_path(label,deepcopy(skew),skew_direction=1)
+
+        skew = [(0,2),(2,7),(4,10),(7,3)]  
+        AL.update_with_s_path(label,deepcopy(skew),skew_direction=1)
+
+        i2 = deepcopy(AL.i_chain[2])
+
+        # subcase 1
+        AL.revert_to_chain_link(2)
+
+        assert len(AL.i_chain) == 2 
+        assert type(AL.I) == LabelInterpreterTypeCEE
+        assert AL.I.label_seq == i2.label_seq
+
+        # subcase 2
+        AL.revert_to_chain_link(2) 
+        assert AL.I.label_seq == i2.label_seq
 
 if __name__ == '__main__':
     unittest.main()

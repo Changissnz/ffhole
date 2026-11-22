@@ -73,9 +73,12 @@ class FCAgentTypeI:
                 q = self.iv_afunc(iv) 
                 self.cumulative_instability += q 
             else: 
-                Q2.append((iv,iv_)) 
+                Q2.append((t,iv,iv_)) 
         self.iv_queue = Q2 
         return  
+
+    def clear_ivec_cache(self): 
+        self.iv_cache.clear() 
 
     def increment_timestamp(self): 
         self.timestamp += 1 

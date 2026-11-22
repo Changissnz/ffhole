@@ -15,7 +15,13 @@ When method<update_with_s_path> is called, w/ `add_to_chain` set to True, if the
 (skew path) is not a direct path, for any index with a multi-label, the multi-label 
 is a new element. These new elements, along w/ the ones at the previous link in the 
 chain, `I`, comprise the new label set, in the case of `maintain_constant_dim` set to 
-False. When `maintain_constant_dim` is set to True, the new label set is of the same 
+False. When `maintain_constant_dim` is set to True, there is an attempt to maintain 
+the dimension of the <LabelInterpreterTypeCEE> `I`. The index-to-labelset map used is 
+of the same dimension. If the label sets are unique, then the new <LabelInterpreterTypeCEE>
+is of the same dimension. The new <LabelInterpreterTypeCEE> is of dimension equal to the 
+number of unique label sets. 
+
+the new label set is of the same 
 size as that of `I`.This new label set is used to instantiate the next <LabelInterpreterTypeCEE>. 
 
             NOTE: 
@@ -54,7 +60,18 @@ class AGChainedLabelInterpreterTypeCEE:
         return self.i_chain[i] 
 
     def __len__(self): 
-        return len(self.i_chain)  
+        return len(self.i_chain) + 1 
+
+    def revert_to_chain_link(self,index): 
+        # case: no change 
+        if index == len(self) - 1: 
+            return 
+
+        q = deepcopy(self.i_chain[index]) 
+
+        while len(self.i_chain) > index: 
+            self.i_chain.pop() 
+        self.I = q 
 
     def preproc(self,c2w_map:dict,form_type): 
         label_seq = sorted(c2w_map.keys()) 
@@ -89,13 +106,17 @@ class AGChainedLabelInterpreterTypeCEE:
         indices = sorted(M.keys())
         q = [M[i] for i in indices] 
 
-        labels = [self.pfgen.element_to_int_label(q_) for q_ in q]
+        labels_ = [self.pfgen.element_to_int_label(q_) for q_ in q]
+        labels = []
+        for l in labels_: 
+            if l in labels: continue
+            labels.append(l) 
 
         if not self.maintain_constant_dim: 
             L = deepcopy(self.I.label_seq)
             labels = [l for l in labels if l not in L] 
             labels = L + labels 
-            
+
         self.i_chain.append(self.I) 
         self.I = LabelInterpreterTypeCEE(labels) 
         return 
@@ -161,8 +182,8 @@ class AGChainedLabelInterpreterTypeCEE:
         return V 
 
     def fetch_intrp(self,index): 
-        assert 0 <= index <= len(self.i_chain) + 1 
-        if index == len(self.i_chain) + 1: 
+        assert 0 <= index < len(self) 
+        if index == len(self.i_chain):  
             return self.I 
         return self.i_chain[index]
 
