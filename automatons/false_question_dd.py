@@ -135,6 +135,13 @@ class FalseQuestionTypeDD:
         return 
 
     """
+    sets PRNG for subject 
+    """
+    def set_prg(self,prg): 
+        self.fs.load_prg(prg)
+        return 
+
+    """
     main method #1 
     """
     def exec_one_objective(self): 

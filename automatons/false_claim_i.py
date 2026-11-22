@@ -19,6 +19,12 @@ The structure <AGChainedLabelInterpreterTypeCEE> is used to operate
 the initial <LabelInterpreterTypeCEE>, in a chain-like manner. 
 NOTE: see file<falses.label_intrp> and file<falses.chained_label_intrp>
       for more details on these operations. 
+<AGChainedLabelInterpreterTypeCEE> adds a new <LabelInterpreterTypeCEE> 
+to its chain of <LabelInterpreterTypeCEE>, every time the `subject` and 
+`claimant` agree on a new claim made from these details D' := delta(D). 
+This chain of interpreters therefore represents the examination process 
+of an initial matter, a sequence of details D, that is transformed from 
+D based on the claims made from `claimant` to `subject`. 
 
 -------------------------------------------------------------------------
 At any timestamp, both the `subject` and the `claimant` act on the same 
@@ -64,15 +70,18 @@ non-zero elements are at least 1.0 in value. When the instability vector activat
 the summation of the vector's original values is added to the instability of the agent 
 in possession of it. 
 
-The <LabelInterpreterTypeCEE> that the `subject` and `claimant` uses is affected by 
-activated instability vectors. At any timestamp, the <LabelInterpreterTypeCEE> used is 
-the one at the minimum index of an instability vector, belonging to either the `subject` 
-or the `claimant`, that activated at the end of the previous timestamp. 
+Activated instability vectors determine the <LabelInterpreterTypeCEE> that the `subject` 
+and `claimant` uses. At any timestamp, the <LabelInterpreterTypeCEE> used is the one 
+at the minimum index of an instability vector, belonging to either the `subject` or 
+the `claimant`, that activated at the end of the previous timestamp. 
 NOTE: see method<FalseClaimTypeI.process_instability>. 
 
 NOTE: due to the explosive growth in computing instability over multiple links of the 
 <AGChainedLabelInterpreterTypeCEE>, the default is for the chain of <LabelInterpreterTypeCEE>s 
 to reset back to the original for every DEFAULT_FALSE_CLAIM_RESET_INTERVAL timestamps. 
+NOTE: the reset from DEFAULT_FALSE_CLAIM_RESET_INTERVAL will sometimes cause associated 
+<LabelInterpreterTypeCEE>s from instability vectors to not be present during those 
+vectors' activations.
 """ 
 class FalseClaimTypeI: 
 
@@ -96,6 +105,17 @@ class FalseClaimTypeI:
         self.verbose = None
         self.set_verbosity(verbose)  
         return 
+
+    def set_prg(self,agent:str,prg):
+        assert agent in {"claimant","subject","intermediary"} 
+        assert type(prg) in {MethodType,FunctionType}
+
+        if agent == "claimant": 
+            self.claimant.prg = prg 
+        elif agent == "subject": 
+            self.subject.prg = prg 
+        else: 
+            self.prg = prg 
 
     def set_verbosity(self,verbose:bool): 
         assert type(verbose) == bool 
@@ -189,7 +209,7 @@ class FalseClaimTypeI:
         return 
 
     @staticmethod 
-    def generate_instance(label_seq,form_type,delta_mult,act_ratio,trust,prg,constant_trust:bool=True,verbose:bool=False): 
+    def generate_instance(label_seq,form_type,delta_mult,trust,prg,constant_trust:bool=True,verbose:bool=False): 
         assert len(label_seq) == len(set(label_seq)) 
         assert len(label_seq) > 1 
         assert type(delta_mult) in {int,float}
