@@ -5,6 +5,74 @@ DEFAULT_FALSE_CLAIM_RESET_INTERVAL = 5
 
 """
 (F)alse (C)laim Type (I)nterpretive. 
+
+Automaton consists of two agents, a `claimant` and a `subject`, where 
+the `claimant` poses a claim to the `subject` at every timestamp. 
+
+The matter that the activity of claiming revolves around an initial 
+sequence of details D. The structure, <LabelInterpreterTypeCEE>, 
+is used to represent these details D, as a square lattice of dimension 
+|D| x |D|. In the perfect case of accuracy, an agent maps every detail 
+along its direct path in this <LabelInterpreterTypeCEE>. 
+
+The structure <AGChainedLabelInterpreterTypeCEE> is used to operate 
+the initial <LabelInterpreterTypeCEE>, in a chain-like manner. 
+NOTE: see file<falses.label_intrp> and file<falses.chained_label_intrp>
+      for more details on these operations. 
+
+-------------------------------------------------------------------------
+At any timestamp, both the `subject` and the `claimant` act on the same 
+<LabelInterpreter>.
+
+At every timestamp, the `claimant` first poses a claim to the subject. The 
+claim is in the form of:
+- a label (detail) on the <LabelInterpreterTypeCEE>, 
+- a sequence of skews (column index, index shift) for the interpreter's traversal. 
+
+      explanatory
+    ---------------
+A claim, in this representation, is fallacious because of the non-null skew, 
+which results in an indirect path from one detail to its effect (an end node 
+of the square lattice graph). A fallacy at a column index results in a multi-label 
+(morphism of details) into a new detail (termed "element" by the kernel). 
+
+A claim is associated with an instability vector, which is calculated by the 
+kernel, <KernelReprTypeDCCWSM>, of the <AGChainedLabelInterpreterTypeCEE>. 
+
+NOTE: the default generation method, <FalseClaimTypeI.generate_instance>, sets the 
+      instability for all base elements at 0. 
+    -----------------
+
+Additionally, the `claimant` has the option to add a "cover" over this claim. When 
+a "cover" is added, the `subject` will always accept the claim. Otherwise, the 
+`subject` accepts the claim iff its PRNG output falls below the `trust`.
+
+If the `subject` accepts a claim uncovered by the `claimant`, the subject receives 
+the claim's associated instability vector. If the claim is covered, the `claimant` 
+receives said instability vector. 
+
+If the `subject` does not accept the claim, the `claimant` receives the instability 
+vector. 
+
+If the claim is accepted, both agents use the <LabelInterpreterTypeCEE> updated with 
+the skew path of the claim. 
+-----------------------------------------------------------------------------------
+
+By the default functions (see file<automatons.false_claim_agents_i>), any instability 
+vector w/ at least one non-zero element will eventually be activated, once all 
+non-zero elements are at least 1.0 in value. When the instability vector activates, 
+the summation of the vector's original values is added to the instability of the agent 
+in possession of it. 
+
+The <LabelInterpreterTypeCEE> that the `subject` and `claimant` uses is affected by 
+activated instability vectors. At any timestamp, the <LabelInterpreterTypeCEE> used is 
+the one at the minimum index of an instability vector, belonging to either the `subject` 
+or the `claimant`, that activated at the end of the previous timestamp. 
+NOTE: see method<FalseClaimTypeI.process_instability>. 
+
+NOTE: due to the explosive growth in computing instability over multiple links of the 
+<AGChainedLabelInterpreterTypeCEE>, the default is for the chain of <LabelInterpreterTypeCEE>s 
+to reset back to the original for every DEFAULT_FALSE_CLAIM_RESET_INTERVAL timestamps. 
 """ 
 class FalseClaimTypeI: 
 
@@ -51,6 +119,9 @@ class FalseClaimTypeI:
 
         self.I = deepcopy(self.I_) 
         self.load_new_intrp() 
+
+        self.subject.reset_timestamp()
+        self.claimant.reset_timestamp() 
 
     def process_claim(self,label,skew_vec,skew_dir,no_cover):
         index = len(self.I) - 1

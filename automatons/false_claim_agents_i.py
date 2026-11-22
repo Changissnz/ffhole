@@ -91,6 +91,9 @@ class FCAgentTypeI:
     def increment_timestamp(self): 
         self.timestamp += 1 
 
+    def reset_timestamp(self): 
+        self.timestamp = 0 
+
 """
 The subject agent in False Claim Type Interpretive. 
 """
