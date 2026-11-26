@@ -30,7 +30,7 @@ prg := function|method, PRNG used for making decisions.
 iv_update_func := function|method, f(V) -> (V',?is activated?).
 iv_act_func := function|method, f(V) -> non-negative float. 
 """
-class FCAgentTypeI: 
+class FCAgent: 
 
     def __init__(self,l_intrp:LabelInterpreterTypeCEE,prg,iv_update_func,iv_act_func,verbose:bool=False):
         assert type(l_intrp) == LabelInterpreterTypeCEE
@@ -97,7 +97,7 @@ class FCAgentTypeI:
 """
 The subject agent in False Claim Type Interpretive. 
 """
-class FCSubjectTypeI(FCAgentTypeI): 
+class FCSubjectTypeI(FCAgent): 
 
     def __init__(self,l_intrp:LabelInterpreterTypeCEE,prg,iv_update_func,iv_act_func,verbose:bool=False):
 
@@ -130,7 +130,7 @@ class FCSubjectTypeI(FCAgentTypeI):
 """
 The claimant agent in False Claim Type Interpretive. 
 """
-class FCClaimantTypeI(FCAgentTypeI):
+class FCClaimantTypeI(FCAgent):
 
     def __init__(self,l_intrp:LabelInterpreterTypeCEE,prg,iv_update_func,iv_act_func,verbose:bool=False):
         super().__init__(l_intrp,prg,iv_update_func,iv_act_func,verbose) 
