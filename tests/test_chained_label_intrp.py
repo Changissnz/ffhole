@@ -166,5 +166,49 @@ class AGChainedLabelInterpreterTypeCEEMethods(unittest.TestCase):
         AL.revert_to_chain_link(2) 
         assert AL.I.label_seq == i2.label_seq
 
+    def test__AGChainedLabelInterpreterTypeCEE__reset_base__case_1(self):
+
+        c2w = {"sdfgsda":0.5,"46sdgf":0.55,"hs345as":0.2433,"jl;j":0.8812}
+
+        prg = prg = prg__LCG(234.52,-352.2,11563.44,3449.65) 
+        form_type = "G"
+
+        AL = AGChainedLabelInterpreterTypeCEE(c2w,prg,form_type,maintain_constant_dim=False)
+
+        starting_keys = {0, 1, 2, 3} 
+        assert set(AL.I.l2p_map.keys()) == starting_keys
+        assert set(AL.K.weight_map.keys()) == starting_keys
+        assert set(AL.pfgen.i2f_map.keys()) == starting_keys
+
+        skew = [(0,2),(1,3),(2,1)] 
+
+        label = 0 
+        AL.update_with_s_path(label,deepcopy(skew),skew_direction=1)
+
+        label2 = 7 
+        skew2 = [(0,4),(2,5),(4,1),(5,6)] 
+        AL.update_with_s_path(label2,deepcopy(skew2),skew_direction=1)
+
+        label3 = 11 
+        skew3 = [(0,4),(2,5),(4,1),(5,6),(7,2),(8,2),(9,5)]  
+        AL.update_with_s_path(label3,deepcopy(skew3),skew_direction=1)
+
+        label4 = 16 
+        skew4 = [(0,2),(2,1),(4,5),(5,2),(7,6),(8,9),(12,5),(14,6),(16,17)] 
+        AL.update_with_s_path(label4,deepcopy(skew4),skew_direction=1)
+
+        e_idns = {13,16,17,18,19}
+        c2w_map = {x:AL.K.weight_map[x] for x in e_idns}
+        AL.reset_base(e_idns) 
+        
+        assert set(AL.K.weight_map.keys()) == e_idns 
+        assert set(AL.K.base_elements) == e_idns 
+        assert set(AL.pfgen.label_seq) == {"13","16","17","18","19"} 
+        assert set(AL.I.label_seq) == e_idns 
+
+        for x in e_idns: 
+            q = AL.element_instability_vec(x)
+            assert q == [c2w_map[x]] * 2 
+
 if __name__ == '__main__':
     unittest.main()

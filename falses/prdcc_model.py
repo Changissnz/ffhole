@@ -237,3 +237,31 @@ class PRDCCFunctionGen:
         if self.ftype == "P": 
             return generate_form_P_function(self.prg)  
         return generate_form_G_function(self.prg) 
+
+    #-------------------------------------------
+
+    """
+    elements := set, integer identifiers of present elements 
+    """
+    def reset_base(self,elements:set): 
+        assert type(elements) == set 
+        for x in elements: assert x in self.i2f_map 
+
+        i2f_map_ = {} 
+        for x in elements: 
+            i2f_map_[x] = (generate_form__identity(),instability_score_vector) 
+        self.i2f_map = i2f_map_
+
+        self.b2int_map = {DEFAULT_L2INT_STRINGIZE_FUNC(x):x for x in elements}
+
+        q = sorted(elements)  
+        self.l2i_map.label_seq = [DEFAULT_L2INT_STRINGIZE_FUNC(q_) for q_ in q]
+        self.label_seq = deepcopy(self.l2i_map.label_seq) 
+
+        self.l2i_map.imap.clear() 
+        self.l2i_map.imap_rev.clear() 
+
+        for x in self.l2i_map.label_seq: 
+            self.l2i_map.imap[x] = int(x) 
+            self.l2i_map.imap_rev[int(x)] = x 
+        return 
