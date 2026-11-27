@@ -1,6 +1,8 @@
 from .false_claim_agents_ar import * 
 from morebs2.numerical_generator import prg_to_LCG_stack,merge_two_prgs
 
+DEFAULT_FALSE_CLAIM_TYPE_AR_MAX_ELEMENTS = 14  
+
 class FalseClaimTypeAR: 
 
     def __init__(self,C:FCClaimantTypeAR,S:FCSubjectTypeI,I:AGChainedLabelInterpreterTypeCEE,\
@@ -28,8 +30,22 @@ class FalseClaimTypeAR:
 
     def preproc(self): 
         elements = self.I.current_elements() 
+        self.limit_elements() 
         self.assign_control_to_elements(elements)
         return  
+
+    #### TODO 
+    def limit_elements(self): 
+        elements = self.I.current_elements() 
+        d = len(elements) - DEFAULT_FALSE_CLAIM_TYPE_AR_MAX_ELEMENTS
+
+        if d > 0: 
+            x = modulo_in_range(int(self.prg()),[4,int(DEFAULT_FALSE_CLAIM_TYPE_AR_MAX_ELEMENTS / 1.3)])
+            prg_ = prg__single_to_int(self.prg)
+            q = prg_choose_n(elements,x,prg_,is_unique_picker=True) 
+            self.I.reset_base(set(q)) 
+            self.claimant.l_intrp = self.I.I 
+            self.subject.l_intrp = self.I.I 
 
     def assign_control_to_elements(self,elements:list): 
         assert type(elements) == list 
@@ -40,7 +56,7 @@ class FalseClaimTypeAR:
         M_c = dict()
         M_s = dict()
         for q_ in elements: 
-            d = round(prg_decimal(prg_,[0.,1.]),5) 
+            d = round(float(prg_decimal(prg_,[0.,1.])),5) 
             M_c[q_] = d 
             M_s[q_] = 1. - d 
 
@@ -54,23 +70,40 @@ class FalseClaimTypeAR:
     def __next__(self): 
 
         M = self.claimant.pose_claim()
-
-        for label,skew_vec in M.items(): 
+        M_ = deepcopy(M)
+        for label,skew_vec in M_.items(): 
             self.I.update_with_s_path(label,skew_vec,skew_direction=1,add_to_chain=False) 
 
+        M_ = self.claim_to_i2l_map(deepcopy(M)) 
         r = self.subject.respond_to_claim(M) 
-        
+
         # case: subject takes action off of the claim 
         if r == 1: 
-            self.process_claim_A(M) 
+            self.process_claim_A(M_) 
         # case: subject reacts to the claim 
         else: 
-            self.process_claim_R(M) 
+            self.process_claim_R(M_) 
+
+        self.limit_elements()
+        self.process_instability()
+
+    """
+    converts a claim, a map of 
+        element idn -> skew vector 
+    to 
+        element idn -> (index -> label set). 
+    """
+    def claim_to_i2l_map(self,M): 
+        M_ = dict() 
+        for k,v in M.items(): 
+            p = self.I.I.label_to_s_path(k,v,1)
+            M_[k] = self.I.I.path_to_lmap(p)
+        return M_ 
 
     def process_claim_A(self,M): 
-        M_ = {k:self.I.I.label_to_s_path(k,v,1) for k,v in M.items()}
-        self.imbalance_from_claim(M_)
-        self.load_new_intrp(M_) 
+        if self.verbose: print("\t--- subject acts on claim")
+        self.imbalance_from_claim(M)
+        self.load_new_intrp(M) 
         self.exec_direct_paths(None)  
         return 
 
@@ -80,21 +113,20 @@ class FalseClaimTypeAR:
 
         ends_met = set() 
         for k,v in M.items(): 
-            M2 = self.I.I.path_to_lmap(v)
-            q = deepcopy(M2[length-1]) 
+            q = deepcopy(v[length-1]) 
 
             if len(q) != 1: continue 
             ends_met |= q 
 
         unmet_ends = sorted(set(elements) - ends_met) 
-        self.process_instability_for_agents(unmet_ends)
+        self.add_instability_to_agents(unmet_ends)
 
         if self.verbose: 
             print("imbalance of ends={}".format(unmet_ends))
         return 
 
     def process_claim_R(self,M):
-        elements = self.elements_from_claim_map(M,only_new_elements=True)
+        elements = self.elements_from_claim_map(M,only_new_elements=True) 
         self.exec_direct_paths(elements) 
         return 
 
@@ -114,7 +146,7 @@ class FalseClaimTypeAR:
         #       elements.
         if type(elements) == type(None): 
             elements = self.I.current_elements()
-        self.process_instability_for_agents(elements) 
+        self.add_instability_to_agents(elements) 
 
     def control_of_element(self,element:int): 
         assert type(element) == int 
@@ -134,7 +166,6 @@ class FalseClaimTypeAR:
         return self.e2control_map[element] 
 
     def load_new_intrp(self,M): 
-
         elements = self.elements_from_claim_map(M)
         elements = sorted(elements)
         L = LabelInterpreterTypeCEE(elements)
@@ -148,9 +179,8 @@ class FalseClaimTypeAR:
         assert type(only_new_elements) == bool 
 
         elements = set(M.keys()) 
-        for v in M.values(): 
-            M2 = self.I.I.path_to_lmap(v)
-            for k,v2 in M2.items(): 
+        for k,v in M.items(): 
+            for k,v2 in v.items(): 
                 i2 = self.I.constituents_to_label(v2)
                 elements |= {i2} 
 
@@ -158,12 +188,16 @@ class FalseClaimTypeAR:
             elements = elements - set(M.keys()) 
         return elements 
 
-    def process_instability_for_agents(self,elements): 
+    def add_instability_to_agents(self,elements): 
         assert type(elements) in {set,list} 
         for x in elements: 
             cv,sv = self.element_instability_vectors(x) 
             self.claimant.add_ivec(cv,x) 
             self.subject.add_ivec(sv,x) 
+
+    def process_instability(self): 
+        self.subject.process_instability()
+        self.claimant.process_instability()
 
     """
     return:

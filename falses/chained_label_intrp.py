@@ -254,4 +254,5 @@ class AGChainedLabelInterpreterTypeCEE:
         return self.pfgen.element_to_int_label(constituents) 
 
     def label_to_constituents(self,label): 
-        return self.pfgen.int_label_to_element(label) 
+        q = self.pfgen.int_label_to_element(label) 
+        return {int(q_) for q_ in q} 

@@ -1,7 +1,7 @@
 from xFS_bots.graph_models.label2int_map import * 
 from xFS_bots.graph_models.graph_gen import * 
 
-from morebs2.numerical_generator import prg_decimal
+from morebs2.numerical_generator import prg_decimal,wrap_ranged_modulo_over_generator
 from morebs2.matrix_methods import is_vector
 
 from .static_prng_functions import * 
@@ -75,10 +75,11 @@ function outputs sequence, w/ every element either a
 [0] constituent in `c` (repetitions allowed),
 [1] edge between two constituents of `c`. 
 """
+# NOTE: only operators +,- are used, to avoid illegible numbers over extensive iterations.
 def generate_form_G_function(prg): 
 
     cycle_length = modulo_in_range(int(prg()),DEFAULT_PRDCC_PRNG_CYCLE_LENGTH_RANGE) 
-    G = generate_PRNG_struct__type_NAIC_V2(prg,cycle_length)
+    G = generate_PRNG_struct__type_NAIC_V2(prg,cycle_length,pw_operators=[add,sub])
     G.reset(reset_index=True,v=int(prg())) 
 
     def f(idn,c): 

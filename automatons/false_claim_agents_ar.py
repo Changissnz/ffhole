@@ -84,7 +84,7 @@ class FCAgentTypeAR(FCAgent):
         assert 0.0 <= np.min(V) <= np.max(V) <= 1.0 
         assert type(element_idn) == int
 
-        self.iv_queue.append((self.timestamp,deepcopy(V),deepcopy(V),element_idn)) 
+        self.iv_queue.append((self.timestamp,deepcopy(V),deepcopy(V))) 
 
         # case: element already logged (assumes all instability vectors from 
         #       element_idn start at the same value). 
@@ -110,7 +110,6 @@ class FCAgentTypeAR(FCAgent):
             if only_new_elements and len(v) == 1: 
                 return False 
             return True  
-
         P = self.l_intrp.label_to_s_path(label,deepcopy(skew_vec),skew_direction=1)
         M = self.l_intrp.path_to_lmap(P)
 
@@ -118,7 +117,7 @@ class FCAgentTypeAR(FCAgent):
         unknowns = 0 
         c = 0. 
 
-        for k,v in M.items(): 
+        for k,v in M.items():
             stat = flter(v) 
             if not stat: continue 
 
@@ -211,7 +210,7 @@ class FCClaimantTypeAR(FCAgentTypeAR):
     def generate_s_path_(self): 
         l = len(self.l_intrp.label_seq)
         skew_vec = [] 
-        for i in range(1,l-1):  
+        for i in range(1,l-2):  
             index_skew = modulo_in_range(int(self.prg()),[1,l]) 
             skew_vec.append((i,index_skew)) 
         return skew_vec 
@@ -279,7 +278,6 @@ class FCSubjectTypeAR(FCAgentTypeAR):
 
     def respond_to_claim(self,claim_map:dict):
         assert type(claim_map) == dict 
-
         r = self.predict_R_effect(claim_map) 
         a = self.predict_A_effect(claim_map) 
 
@@ -290,9 +288,14 @@ class FCSubjectTypeAR(FCAgentTypeAR):
         d = prg_decimal(self.prg,[0.,1.])         
         q = -1 if r >= a else 1 
 
+        if self.verbose: print("-- subject output of {}, risk aversion {}".format(d,self.risk_aversion))
+
         # take risk, do the opposite 
         if d >= self.risk_aversion: 
+            if self.verbose: print("-- subject takes risk.")
             q = q * -1 
-        
+        else:
+            if self.verbose: print("-- subject does not take risk.")
+
         self.action_sequence.append(q) 
         return q 
