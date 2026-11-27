@@ -75,9 +75,37 @@ class FCAgentTypeAR(FCAgent):
 
         self.mean_known_instability = 0.0 
 
-    def add_e2c_info(self,M): 
+    def knows_control(self,element): 
+        return element in self.e2control_map
+
+    def knows_instability(self,element): 
+        return element in self.i2i_map
+
+    """
+    filter all elements in `e2control_map` and `i2i_map` that 
+    are not in `retained`
+    """
+    def filter_elements(self,retained:set): 
+        assert type(retained) == set 
+
+        kc = set(self.e2control_map.keys()) - retained 
+        ki = set(self.i2i_map.keys()) - retained 
+
+        for k in kc: 
+            del self.e2control_map[k] 
+        
+        for k in ki: 
+            del self.i2i_map[k] 
+
+        return 
+
+    def add_info(self,M,info_type:str): 
         assert type(M) == dict 
-        self.e2control_map.update(M) 
+        assert info_type in DEFAULT_FALSE_CLAIM_PFUNCTION_MAP
+
+        D = self.e2control_map if info_type == "control" \
+            else self.i2i_map
+        D.update(M) 
 
     def add_ivec(self,V,element_idn): 
         assert type(V) == list or is_vector(V) 
@@ -120,8 +148,8 @@ class FCAgentTypeAR(FCAgent):
         for k,v in M.items():
             stat = flter(v) 
             if not stat: continue 
-
             q = self.element_to_value(v,self.ptype) 
+            ##print("\t\t-- predicting {}: {}".format(k,q))
             num_elements += 1 
 
             if type(q) == type(None): 
@@ -244,6 +272,7 @@ class FCSubjectTypeAR(FCAgentTypeAR):
     def predict_R_effect(self,claim_map):
         assert type(claim_map) == dict 
 
+        ##print("PREDICTING RRR")
         x = [0,0,0]
         for l,skew_vec in claim_map.items(): 
             q = self.predict_path_score(l,skew_vec,only_new_elements=True) 
@@ -255,6 +284,8 @@ class FCSubjectTypeAR(FCAgentTypeAR):
     def predict_A_effect(self,claim_map):
         unique_elements = [{l} for l in self.l_intrp.label_seq] 
 
+        ##print("PREDICTING AAA")
+        ##print(claim_map)
         for label,skew_vec in claim_map.items(): 
             P = self.l_intrp.label_to_s_path(label,deepcopy(skew_vec),skew_direction=1)
             M = self.l_intrp.path_to_lmap(P)
@@ -272,7 +303,7 @@ class FCSubjectTypeAR(FCAgentTypeAR):
                 num_unknown += 1 
                 continue 
             v += v_ 
-        
+
         x = (v,num_unknown,len(unique_elements))
         return self.condense_path_score(x)
 

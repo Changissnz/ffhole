@@ -3,14 +3,20 @@ from morebs2.numerical_generator import prg_to_LCG_stack,merge_two_prgs
 
 DEFAULT_FALSE_CLAIM_TYPE_AR_MAX_ELEMENTS = 14  
 
+"""
+agent_info_ratio := (r_0,r_1), r_i in [0.,1.]. Ratio values specify the number of instability and 
+                control values over the elements the claimant and subject respectively have. 
+"""
 class FalseClaimTypeAR: 
 
     def __init__(self,C:FCClaimantTypeAR,S:FCSubjectTypeI,I:AGChainedLabelInterpreterTypeCEE,\
-        prg,verbose:int=0): 
+        agent_info_ratio,prg,verbose:int=0): 
 
         assert type(C) == FCClaimantTypeAR
         assert type(S) == FCSubjectTypeAR
         assert type(I) == AGChainedLabelInterpreterTypeCEE
+        assert type(agent_info_ratio) == tuple and len(agent_info_ratio) == 2
+        assert 0. <= agent_info_ratio[0] <= 1. and 0. <= agent_info_ratio[1] <= 1.
         assert type(prg) in {MethodType,FunctionType} 
 
         assert C.l_intrp.label_seq == S.l_intrp.label_seq 
@@ -18,6 +24,7 @@ class FalseClaimTypeAR:
         self.claimant = C 
         self.subject = S 
         self.I = I 
+        self.agent_info_ratio = agent_info_ratio
         self.prg = prg 
         self.verbose = None  
 
@@ -27,10 +34,18 @@ class FalseClaimTypeAR:
         self.preproc(verbose) 
         return
 
+    #-------------------------------------- preprocessing methods 
+
     def preproc(self,verbosity): 
         elements = self.I.current_elements() 
         self.limit_elements() 
         self.assign_control_to_elements(elements)
+
+        self.assign_info_to_agents(set(elements),"claimant","instability") 
+        self.assign_info_to_agents(set(elements),"subject","instability") 
+        self.assign_info_to_agents(set(elements),"claimant","control") 
+        self.assign_info_to_agents(set(elements),"subject","control") 
+
         self.set_verbosity(verbosity) 
         return
 
@@ -40,39 +55,11 @@ class FalseClaimTypeAR:
         self.claimant.verbose = bool(verbosity)
         self.subject.verbose = bool(verbosity) 
 
-    #### TODO 
-    def limit_elements(self): 
-        elements = self.I.current_elements() 
-        d = len(elements) - DEFAULT_FALSE_CLAIM_TYPE_AR_MAX_ELEMENTS
+    #-------------------------------------------------------------------- 
 
-        if d > 0: 
-            x = modulo_in_range(int(self.prg()),[4,int(DEFAULT_FALSE_CLAIM_TYPE_AR_MAX_ELEMENTS / 1.3)])
-            prg_ = prg__single_to_int(self.prg)
-            q = prg_choose_n(elements,x,prg_,is_unique_picker=True) 
-            self.I.reset_base(set(q)) 
-            self.claimant.l_intrp = self.I.I 
-            self.subject.l_intrp = self.I.I 
-
-    def assign_control_to_elements(self,elements:list): 
-        assert type(elements) == list 
-
-        prg_ = merge_two_prgs(self.prg,self.claimant.prg,add)
-        prg_ = merge_two_prgs(prg_,self.subject.prg,sub)
-
-        M_c = dict()
-        M_s = dict()
-        for q_ in elements: 
-            d = round(float(prg_decimal(prg_,[0.,1.])),5) 
-            M_c[q_] = d 
-            M_s[q_] = 1. - d 
-
-            self.e2control_map[q_] = (d,1. - d) 
-
-        self.claimant.add_e2c_info(M_c) 
-        self.subject.add_e2c_info(M_s)
-
-        return
-
+    """
+    main method 
+    """
     def __next__(self): 
 
         M = self.claimant.pose_claim()
@@ -92,6 +79,45 @@ class FalseClaimTypeAR:
 
         self.limit_elements()
         self.process_instability()
+
+    #---------------------------------------------------------------------------
+
+    #### TODO 
+    def limit_elements(self): 
+        elements = self.I.current_elements() 
+        d = len(elements) - DEFAULT_FALSE_CLAIM_TYPE_AR_MAX_ELEMENTS
+
+        if d > 0: 
+            x = modulo_in_range(int(self.prg()),[4,int(DEFAULT_FALSE_CLAIM_TYPE_AR_MAX_ELEMENTS / 1.3)])
+            prg_ = prg__single_to_int(self.prg)
+            q = set(prg_choose_n(elements,x,prg_,is_unique_picker=True)) 
+            self.I.reset_base(q) 
+            self.claimant.l_intrp = self.I.I 
+            self.subject.l_intrp = self.I.I 
+
+            self.claimant.filter_elements(q)
+            self.subject.filter_elements(q)
+
+    def assign_control_to_elements(self,elements:list): 
+        assert type(elements) == list 
+
+        prg_ = merge_two_prgs(self.prg,self.claimant.prg,add)
+        prg_ = merge_two_prgs(prg_,self.subject.prg,sub)
+
+        M_c = dict()
+        M_s = dict()
+        for q_ in elements: 
+            d = round(float(prg_decimal(prg_,[0.,1.])),5) 
+            M_c[q_] = d 
+            M_s[q_] = 1. - d 
+
+            self.e2control_map[q_] = (d,1. - d) 
+
+        #self.claimant.add_info(M_c,"control") 
+        #self.subject.add_info(M_s,"control")
+
+        return
+     
 
     """
     converts a claim, a map of 
@@ -132,6 +158,7 @@ class FalseClaimTypeAR:
         return 
 
     def process_claim_R(self,M):
+        if self.verbose: print("\t--- subject reacts to claim")
         elements = self.elements_from_claim_map(M,only_new_elements=True) 
         self.exec_direct_paths(elements) 
         return 
@@ -196,10 +223,66 @@ class FalseClaimTypeAR:
 
     def add_instability_to_agents(self,elements): 
         assert type(elements) in {set,list} 
+
         for x in elements: 
             cv,sv = self.element_instability_vectors(x) 
             self.claimant.add_ivec(cv,x) 
             self.subject.add_ivec(sv,x) 
+
+        self.update_agent_db(elements) 
+
+    """
+    updates the agent database of instability and control values for 
+    `claimant` and `subject`. 
+    """
+    def update_agent_db(self,elements):
+        unstable_elements = set() 
+        control_elements = set() 
+
+        for x in elements: 
+            stat_i = not (self.claimant.knows_instability(x) and self.subject.knows_instability(x)) 
+            stat_c = not (self.claimant.knows_control(x) and self.subject.knows_control(x)) 
+
+            if stat_i: 
+                unstable_elements |= {x} 
+            
+            if stat_c:
+                control_elements |= {x} 
+    
+        self.assign_info_to_agents(unstable_elements,"claimant","instability") 
+        self.assign_info_to_agents(unstable_elements,"subject","instability") 
+        self.assign_info_to_agents(control_elements,"claimant","control") 
+        self.assign_info_to_agents(control_elements,"subject","control") 
+        return 
+
+    def assign_info_to_agents(self,elements:set,agent_idn:str,info_type:str): 
+        
+        assert agent_idn in {"claimant","subject"}
+        assert info_type in DEFAULT_FALSE_CLAIM_PFUNCTION_MAP
+
+        # choose the elements to send info to `agent_idn`        
+        l = ceil(self.agent_info_ratio[0] * len(elements)) 
+        q0 = []  
+        if l > 0: 
+            prg_ = prg__single_to_int(self.prg)
+            q0 = prg_choose_n(sorted(elements),l,prg_,is_unique_picker=True) 
+
+        ##print("ASSIGNING {} / {}".format(len(elements),l))
+
+        # determine the appropriate function 
+        F = None 
+        index = 0 if agent_idn == "claimant" else 1 
+        if info_type == "control": 
+            F = lambda x: self.control_of_element(x)[index]
+        else: 
+            F = lambda x: self.element_instability_vectors(x)[index]
+            
+        D = {q_:F(q_) for q_ in q0} 
+
+        A = self.claimant if agent_idn == "claimant" else \
+            self.subject
+        A.add_info(D,info_type) 
+        return 
 
     def process_instability(self):
         self.subject.verbose = bool(self.verbose == 2)
@@ -224,7 +307,8 @@ class FalseClaimTypeAR:
 
 
     @staticmethod 
-    def generate_instance(label_seq,form_type,delta_mult,prg,claimant_rnp=(0.5,"control"),\
+    def generate_instance(label_seq,form_type,delta_mult,prg,\
+        claimant_info_ratio,subject_info_ratio,claimant_rnp=(0.5,"control"),\
         subject_rnp=(0.5,"control"),verbose:int=0): 
 
         assert len(label_seq) == len(set(label_seq)) 
@@ -250,4 +334,5 @@ class FalseClaimTypeAR:
         S = FCSubjectTypeAR(cl_intrp.I,subject_prg,iv_update_func,iv_act_func,\
             subject_rnp[0],subject_rnp[1],verbose=bool(verbose)) 
         print("Q: ",C)
-        return FalseClaimTypeAR(C,S,cl_intrp,prg,verbose) 
+        return FalseClaimTypeAR(C,S,cl_intrp,(claimant_info_ratio,subject_info_ratio),\
+            prg,verbose) 
