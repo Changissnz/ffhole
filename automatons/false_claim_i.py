@@ -121,6 +121,7 @@ class FalseClaimTypeI:
 
     def set_verbosity(self,verbose:bool): 
         assert type(verbose) == bool 
+        self.verbose = verbose 
         self.claimant.verbose = verbose 
         self.subject.verbose = verbose 
 

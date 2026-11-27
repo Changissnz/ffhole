@@ -6,13 +6,12 @@ DEFAULT_FALSE_CLAIM_TYPE_AR_MAX_ELEMENTS = 14
 class FalseClaimTypeAR: 
 
     def __init__(self,C:FCClaimantTypeAR,S:FCSubjectTypeI,I:AGChainedLabelInterpreterTypeCEE,\
-        prg,verbose:bool=False): 
+        prg,verbose:int=0): 
 
         assert type(C) == FCClaimantTypeAR
         assert type(S) == FCSubjectTypeAR
         assert type(I) == AGChainedLabelInterpreterTypeCEE
         assert type(prg) in {MethodType,FunctionType} 
-        assert type(verbose) == bool 
 
         assert C.l_intrp.label_seq == S.l_intrp.label_seq 
 
@@ -20,19 +19,26 @@ class FalseClaimTypeAR:
         self.subject = S 
         self.I = I 
         self.prg = prg 
-        self.verbose = verbose 
+        self.verbose = None  
 
         # element idn -> (claimant control,subject control) [sums to 1.0]
         self.e2control_map = dict() 
 
-        self.preproc() 
+        self.preproc(verbose) 
         return
 
-    def preproc(self): 
+    def preproc(self,verbosity): 
         elements = self.I.current_elements() 
         self.limit_elements() 
         self.assign_control_to_elements(elements)
-        return  
+        self.set_verbosity(verbosity) 
+        return
+
+    def set_verbosity(self,verbosity): 
+        assert type(verbosity) == int and verbosity in {0,1,2}, "got {}".format(verbosity)
+        self.verbose = verbosity 
+        self.claimant.verbose = bool(verbosity)
+        self.subject.verbose = bool(verbosity) 
 
     #### TODO 
     def limit_elements(self): 
@@ -195,9 +201,15 @@ class FalseClaimTypeAR:
             self.claimant.add_ivec(cv,x) 
             self.subject.add_ivec(sv,x) 
 
-    def process_instability(self): 
+    def process_instability(self):
+        self.subject.verbose = bool(self.verbose == 2)
+        self.claimant.verbose = bool(self.verbose == 2)
+
         self.subject.process_instability()
         self.claimant.process_instability()
+
+        self.subject.verbose = bool(self.verbose)
+        self.claimant.verbose = bool(self.verbose)
 
     """
     return:
@@ -213,11 +225,12 @@ class FalseClaimTypeAR:
 
     @staticmethod 
     def generate_instance(label_seq,form_type,delta_mult,prg,claimant_rnp=(0.5,"control"),\
-        subject_rnp=(0.5,"control"),verbose:bool=False): 
+        subject_rnp=(0.5,"control"),verbose:int=0): 
 
         assert len(label_seq) == len(set(label_seq)) 
         assert len(label_seq) > 1 
         assert type(delta_mult) in {int,float}
+        assert verbose in {0,1,2}
 
         c2w_map = {l:0. for l in label_seq} 
         cl_intrp = AGChainedLabelInterpreterTypeCEE(c2w_map,prg,form_type,maintain_constant_dim=True)
@@ -232,8 +245,9 @@ class FalseClaimTypeAR:
         iv_act_func = DEFAULT_FALSE_CLAIM_IVEC_ACTIVATION
 
         C = FCClaimantTypeAR(cl_intrp.I,claimant_prg,iv_update_func,iv_act_func,\
-            claimant_rnp[0],claimant_rnp[1],verbose=verbose) 
+            claimant_rnp[0],claimant_rnp[1],verbose=bool(verbose)) 
         
         S = FCSubjectTypeAR(cl_intrp.I,subject_prg,iv_update_func,iv_act_func,\
-            subject_rnp[0],subject_rnp[1],verbose=verbose) 
+            subject_rnp[0],subject_rnp[1],verbose=bool(verbose)) 
+        print("Q: ",C)
         return FalseClaimTypeAR(C,S,cl_intrp,prg,verbose) 
