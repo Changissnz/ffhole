@@ -70,6 +70,9 @@ class AGChainedLabelInterpreterTypeCEE:
     def __len__(self): 
         return len(self.i_chain) + 1 
 
+    def current_elements(self): 
+        return deepcopy(self.I.label_seq)
+
     def revert_to_chain_link(self,index): 
         # case: no change 
         if index == len(self) - 1: 
@@ -128,6 +131,19 @@ class AGChainedLabelInterpreterTypeCEE:
         self.i_chain.append(self.I) 
         self.I = LabelInterpreterTypeCEE(labels) 
         return 
+
+    """
+    a second version of method<add_link>. This method 
+    adds `L`, a <LabelInterpreterTypeCEE>, as the next 
+    link. 
+    """
+    #NOTE: parameters of this new <LabelInterpreterTypeCEE>, 
+    #      such as labels, are not checked for continuity 
+    #      with prior links in the chain. 
+    def add_link_v2(self,L:LabelInterpreterTypeCEE): 
+        self.i_chain.append(self.I) 
+        self.I = L 
+        return
 
     def update_kernel(self,element): 
 
@@ -236,3 +252,6 @@ class AGChainedLabelInterpreterTypeCEE:
     """
     def constituents_to_label(self,constituents): 
         return self.pfgen.element_to_int_label(constituents) 
+
+    def label_to_constituents(self,label): 
+        return self.pfgen.int_label_to_element(label) 

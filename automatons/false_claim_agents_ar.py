@@ -1,4 +1,5 @@
 from .false_claim_agents_i import * 
+from morebs2.numerical_generator import prg_seqsort_ties
 
 DEFAULT_FALSE_CLAIM_TYPE_AR_CLAIM_NUM_PATH_ATTEMPTS = 4 
 
@@ -83,7 +84,6 @@ class FCAgentTypeAR(FCAgent):
         assert 0.0 <= np.min(V) <= np.max(V) <= 1.0 
         assert type(element_idn) == int
 
-        assert cumulative_instability >= 0. and is_number(cumulative_instability)
         self.iv_queue.append((self.timestamp,deepcopy(V),deepcopy(V),element_idn)) 
 
         # case: element already logged (assumes all instability vectors from 
@@ -111,7 +111,7 @@ class FCAgentTypeAR(FCAgent):
                 return False 
             return True  
 
-        P = self.l_intrp.label_to_s_path(label,skew_vec,skew_direction=1)
+        P = self.l_intrp.label_to_s_path(label,deepcopy(skew_vec),skew_direction=1)
         M = self.l_intrp.path_to_lmap(P)
 
         num_elements = 0 
@@ -186,7 +186,7 @@ class FCClaimantTypeAR(FCAgentTypeAR):
     def make_claim(self): 
         M = {}
         for label in self.l_intrp.label_seq: 
-            skew_vec = self.generate_s_path()
+            skew_vec = self.generate_s_path(label)
             M[label] = skew_vec
         return M 
 
@@ -210,7 +210,6 @@ class FCClaimantTypeAR(FCAgentTypeAR):
 
     def generate_s_path_(self): 
         l = len(self.l_intrp.label_seq)
-
         skew_vec = [] 
         for i in range(1,l-1):  
             index_skew = modulo_in_range(int(self.prg()),[1,l]) 
@@ -227,7 +226,7 @@ A claim, in False Claim Type AR, is a map of the form
 All labels of the current `LabelInterpreterTypeCEE` are present in 
 the map. 
 """ 
-class FCSubjectTypeAR(FCAgent): 
+class FCSubjectTypeAR(FCAgentTypeAR): 
 
     def __init__(self,l_intrp:LabelInterpreterTypeCEE,prg,iv_update_func,iv_act_func,risk_aversion:float,\
         prediction_type:str,verbose:bool=False):
@@ -245,7 +244,6 @@ class FCSubjectTypeAR(FCAgent):
 
     def predict_R_effect(self,claim_map):
         assert type(claim_map) == dict 
-        assert type(is_reaction) == bool  
 
         x = [0,0,0]
         for l,skew_vec in claim_map.items(): 
@@ -259,7 +257,7 @@ class FCSubjectTypeAR(FCAgent):
         unique_elements = [{l} for l in self.l_intrp.label_seq] 
 
         for label,skew_vec in claim_map.items(): 
-            P = self.l_intrp.label_to_s_path(label,skew_vec,skew_direction=1)
+            P = self.l_intrp.label_to_s_path(label,deepcopy(skew_vec),skew_direction=1)
             M = self.l_intrp.path_to_lmap(P)
 
             for v in M.values(): 
@@ -284,6 +282,10 @@ class FCSubjectTypeAR(FCAgent):
 
         r = self.predict_R_effect(claim_map) 
         a = self.predict_A_effect(claim_map) 
+
+        if self.verbose: 
+            print("** subject prediction")
+            print("reaction -> {}, action -> {}".format(r,a)) 
 
         d = prg_decimal(self.prg,[0.,1.])         
         q = -1 if r >= a else 1 
