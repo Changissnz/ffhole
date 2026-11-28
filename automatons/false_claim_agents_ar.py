@@ -8,7 +8,7 @@ function specially allocated for False Claim Type AR.
 
 Converts a path score, consisting of 
 [0] control score (cumulative weights of known), 
-[1] number of unknown, 
+[1] number of unknowns, 
 [2] number total, 
 
 to a float in [0.,1.], in consideration of `risk_aversion`, 
@@ -106,9 +106,6 @@ class FCAgentTypeAR(FCAgent):
 
         D = self.e2control_map if info_type == "control" \
             else self.i2i_map
-
-        ##print("UPDATN")
-        ##print(M)
         D.update(M) 
 
     def add_ivec(self,V):
@@ -315,8 +312,14 @@ class FCSubjectTypeAR(FCAgentTypeAR):
             print("** subject prediction")
             print("reaction -> {}, action -> {}".format(r,a)) 
 
-        d = prg_decimal(self.prg,[0.,1.])         
-        q = -1 if r >= a else 1 
+        d = prg_decimal(self.prg,[0.,1.])
+
+        q = None 
+
+        if self.ptype == "control":   
+            q = -1 if r >= a else 1 
+        else: 
+            q = -1 if r < a else 1 
 
         if self.verbose: print("-- subject output of {}, risk aversion {}".format(d,self.risk_aversion))
 
