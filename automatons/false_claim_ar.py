@@ -52,8 +52,7 @@ class FalseClaimTypeAR:
     def assign_control_to_elements(self,elements:list): 
         assert type(elements) == list 
 
-        prg_ = merge_two_prgs(self.prg,self.claimant.prg,add)
-        prg_ = merge_two_prgs(prg_,self.subject.prg,sub)
+        prg_ = self.tri_prng() 
 
         M_c = dict()
         M_s = dict()
@@ -79,6 +78,18 @@ class FalseClaimTypeAR:
     """
     def __next__(self): 
 
+        if self.verbose: 
+            print("\t\t--------------------")
+            num_elements = len(self.I.current_elements())
+            print("** claimant knowledge for {} elements".format(num_elements))
+            print("control: {}, instability: {}\n".format(len(self.claimant.e2control_map),\
+                len(self.claimant.i2i_map)))
+
+            print("** subject knowledge for {} elements".format(num_elements)) 
+            print("control: {}, instability: {}\n".format(len(self.subject.e2control_map),\
+                len(self.subject.i2i_map)))
+            print("\t\t=====================")
+
         M = self.claimant.pose_claim()
         M_ = deepcopy(M)
         for label,skew_vec in M_.items(): 
@@ -94,8 +105,8 @@ class FalseClaimTypeAR:
         else: 
             self.process_claim_R(M_) 
 
-        self.limit_elements()
         self.process_instability()
+        self.limit_elements()
 
     #-------------------------------------------- processing actions from and reactions to claim 
 
@@ -136,16 +147,17 @@ class FalseClaimTypeAR:
         elements = self.I.current_elements() 
         d = len(elements) - DEFAULT_FALSE_CLAIM_TYPE_AR_MAX_ELEMENTS
 
+        q = set(elements) 
         if d > 0: 
-            x = modulo_in_range(int(self.prg()),[4,int(DEFAULT_FALSE_CLAIM_TYPE_AR_MAX_ELEMENTS / 1.3)])
-            prg_ = prg__single_to_int(self.prg)
+            prg_ = prg__single_to_int(self.tri_prng())
+            x = modulo_in_range(prg_(),[4,int(DEFAULT_FALSE_CLAIM_TYPE_AR_MAX_ELEMENTS / 1.3)])
             q = set(prg_choose_n(elements,x,prg_,is_unique_picker=True)) 
             self.I.reset_base(q) 
             self.claimant.l_intrp = self.I.I 
             self.subject.l_intrp = self.I.I 
 
-            self.claimant.filter_elements(q)
-            self.subject.filter_elements(q)
+        self.claimant.filter_elements(q)
+        self.subject.filter_elements(q)
 
     """
     converts a claim, a map of 
@@ -237,10 +249,10 @@ class FalseClaimTypeAR:
         if info_type == "control": 
             F = lambda x: self.control_of_element(x)[index]
         else: 
-            F = lambda x: self.element_instability_vectors(x)[index]
-            
-        D = {q_:F(q_) for q_ in q0} 
+            F = lambda x: round(float(np.sum(self.element_instability_vectors(x)[index])),5) 
 
+        D = {q_:F(q_) for q_ in q0} 
+        ##print("DX: ",D)
         A = self.claimant if agent_idn == "claimant" else \
             self.subject
         A.add_info(D,info_type) 
@@ -263,8 +275,8 @@ class FalseClaimTypeAR:
 
         for x in elements: 
             cv,sv = self.element_instability_vectors(x) 
-            self.claimant.add_ivec(cv,x) 
-            self.subject.add_ivec(sv,x) 
+            self.claimant.add_ivec(cv)#,x) 
+            self.subject.add_ivec(sv)#,x) 
 
         self.update_agent_db(elements) 
 
@@ -314,6 +326,11 @@ class FalseClaimTypeAR:
 
     #----------------------------------------------------------------------
 
+    def tri_prng(self): 
+        prg_ = merge_two_prgs(self.prg,self.claimant.prg,add)
+        return merge_two_prgs(prg_,self.subject.prg,sub)
+    
+
     @staticmethod 
     def generate_instance(label_seq,form_type,delta_mult,prg,\
         claimant_info_ratio,subject_info_ratio,claimant_rnp=(0.5,"control"),\
@@ -341,6 +358,6 @@ class FalseClaimTypeAR:
         
         S = FCSubjectTypeAR(cl_intrp.I,subject_prg,iv_update_func,iv_act_func,\
             subject_rnp[0],subject_rnp[1],verbose=bool(verbose)) 
-        print("Q: ",C)
+        ##print("Q: ",C)
         return FalseClaimTypeAR(C,S,cl_intrp,(claimant_info_ratio,subject_info_ratio),\
             prg,verbose) 

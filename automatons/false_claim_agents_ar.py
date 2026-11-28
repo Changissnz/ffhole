@@ -74,6 +74,7 @@ class FCAgentTypeAR(FCAgent):
         self.i2i_map = dict() 
 
         self.mean_known_instability = 0.0 
+        self.i_count = 0 
 
     def knows_control(self,element): 
         return element in self.e2control_map
@@ -105,23 +106,21 @@ class FCAgentTypeAR(FCAgent):
 
         D = self.e2control_map if info_type == "control" \
             else self.i2i_map
+
+        ##print("UPDATN")
+        ##print(M)
         D.update(M) 
 
-    def add_ivec(self,V,element_idn): 
+    def add_ivec(self,V):
         assert type(V) == list or is_vector(V) 
         assert 0.0 <= np.min(V) <= np.max(V) <= 1.0 
-        assert type(element_idn) == int
 
         self.iv_queue.append((self.timestamp,deepcopy(V),deepcopy(V))) 
 
-        # case: element already logged (assumes all instability vectors from 
-        #       element_idn start at the same value). 
-        if element_idn in self.i2i_map: 
-            return 
-
-        self.i2i_map[element_idn] = float(sum(V))
+        self.i_count += 1 
         self.mean_known_instability = (self.mean_known_instability + \
-            self.i2i_map[element_idn]) / len(self.i2i_map)
+            float(sum(V))) / self.i_count 
+        return 
 
     """
     If `only_new_elements` is set to True, only considers column indices 
